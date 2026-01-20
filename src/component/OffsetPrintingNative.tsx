@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, FlatList, StyleSheet, Image, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions } from 'react-native';
 import { Heart, ArrowUpDown } from 'lucide-react-native';
 
 
@@ -94,15 +94,13 @@ const OffsetPrinting: React.FC<{ navigate?: (screen: string, params?: any) => vo
           </View>
         </View>
 
-        <FlatList
-          data={printingProducts}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id.toString()}
-          numColumns={numColumns}
-          columnWrapperStyle={styles.row}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        />
+        <View style={[styles.listContent, { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }]}>
+          {printingProducts.map((item) => (
+            <View key={item.id} style={{ width: Math.floor((screenWidth - 32 - (numColumns - 1) * 16) / numColumns), marginBottom: 12 }}>
+              {renderItem({ item })}
+            </View>
+          ))}
+        </View>
       </View>
     </View>
   );

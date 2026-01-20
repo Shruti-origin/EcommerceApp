@@ -12,6 +12,7 @@ import Header from './src/layout/Header';
 import BottomNav from './src/layout/BottomNav';
 import Categories from './src/pages/Categories';
 import ProductDetails from './src/pages/ProductDetails';
+import Deals from './src/pages/Deals';
 import {
   SafeAreaProvider,
   useSafeAreaInsets,
@@ -47,11 +48,14 @@ function AppContent() {
       <View style={{ flex: 1 }}>
         {route.name === 'ProductDetails' ? (
           <ProductDetails product={route.params?.product} navigate={navigate} />
+        ) : route.name === 'Deals' ? (
+          <Deals navigate={navigate} />
         ) : (
           <>
             {active === 'Home' && <Home navigate={navigate} />}
-            {active === 'Categories' && <Categories />}
-            {active === 'Video' && <View />}
+            {active === 'Categories' && <Categories navigate={navigate} />}
+            {/* {active === 'Deals' && <Deals navigate={navigate} />} */}
+            {active === 'Video' && <Deals navigate={navigate} />}
             {active === 'Search' && <View />}
             {active === 'Setting' && <View />}
           </>

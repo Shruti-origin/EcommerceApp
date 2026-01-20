@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, FlatList, StyleSheet, Image, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions } from 'react-native';
 import { Heart, ArrowUpDown } from 'lucide-react-native';
 
 interface PrintingProduct {
@@ -66,15 +66,13 @@ const PrintingNative: React.FC<{ navigate?: (screen: string, params?: any) => vo
           </View>
         </View>
 
-        <FlatList
-          data={printingProducts}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id.toString()}
-        //   numColumns={numColumns}
-        //   columnWrapperStyle={styles.row}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        />
+        <View style={styles.listContent}>
+          {printingProducts.map((item) => (
+            <View key={item.id} style={{ marginBottom: 12 }}>
+              {renderItem({ item })}
+            </View>
+          ))}
+        </View>
       </View>
     </View>
   );

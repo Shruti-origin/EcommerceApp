@@ -2,16 +2,16 @@ import React from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import SaleBannerNative from '../component/SaleBannerNative';
 import ProductGridNative from '../component/ProductGridNative';
-import { CategorySections } from '../component/CategoryProductsGrid';
+import {CategorySections}  from '../component/CategoryProductsGrid';
 
-const Categories: React.FC = () => {
+const Categories: React.FC<{ navigate?: (screen: string, params?: any) => void }> = ({ navigate }) => {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <SaleBannerNative />
       <ProductGridNative />
 
       {/* Render the prepared sections (assets imported inside the component file) */}
-      <CategorySections />
+      <CategorySections navigate={navigate} />
     </ScrollView>
   );
 };

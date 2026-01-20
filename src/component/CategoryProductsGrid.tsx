@@ -1,38 +1,80 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   Image,
   useWindowDimensions,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
+import { Heart } from 'lucide-react-native';
+import CategoriesService from '../services/categoriesService';
+import ProductsService from '../services/productsService';
 
-// import images locally so this file owns its visual assets
-const w_h1 = require('../../assets/w-h1.png');
-const w_h2 = require('../../assets/w-h2.png');
-const w_h3 = require('../../assets/w-h3.png');
-const w_h4 = require('../../assets/w-h4.png');
-const s_h1 = require('../../assets/s-h1.png');
-const s_h2 = require('../../assets/s-h2.png');
-const s_h3 = require('../../assets/s-h3.png');
-const s_h4 = require('../../assets/s-h4.png');
+// Fallback images for when API doesn't return images
+const placeholderImage = require('../../assets/s-h1.png');
+
+interface Product {
+  id: string;
+  sku?: string;
+  name: string;
+  description?: string;
+  shortDescription?: string;
+  brand?: string;
+  price: string;
+  mrp?: string;
+  discountPercentage?: string;
+  taxPercentage?: string;
+  images?: string[];
+  rating?: string;
+  reviewCount?: number;
+  status?: string;
+  tags?: string[];
+  category?: {
+    id: string;
+    name: string;
+    slug: string;
+    description?: string;
+  };
+  vendor?: {
+    id: string;
+    businessName: string;
+    status: string;
+  };
+  inventory?: any[];
+  stock?: number;
+  variants?: any[];
+}
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  children?: Category[];
+  image?: string;
+}
 
 interface ProductItem {
   id: number;
   image: any;
   title: string;
   price: string;
-  badge?: string; // e.g. "Hot"
-  badgeColor?: string; // optional color for badge
+  badge?: string;
+  badgeColor?: string;
 } 
 
-const ProductCard: React.FC<{ item: ProductItem; cardWidth: number }> = ({ item, cardWidth }) => {
+const ProductCard: React.FC<{ item: ProductItem; cardWidth: number; isLeft?: boolean; favorites: Record<number, boolean>; toggleFavorite: (id: number) => void; navigate?: (screen: string, params?: any) => void }> = ({ item, cardWidth, isLeft, favorites, toggleFavorite, navigate }) => {
   const imageHeight = Math.round(cardWidth * 1.18);
 
   return (
-    <View style={[styles.card, { width: cardWidth }]}>      
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={() => navigate?.('ProductDetails', { product: item })}
+      accessibilityLabel={`Open ${item.title}`}
+      style={[styles.card, { width: cardWidth, marginRight: isLeft ? 2 : 0 }]}
+    >
       <View style={styles.imageContainer}>
         <Image source={item.image} style={[styles.image, { height: imageHeight }]} />
 
@@ -43,9 +85,9 @@ const ProductCard: React.FC<{ item: ProductItem; cardWidth: number }> = ({ item,
           </View>
         ) : null}
 
-        {/* Heart icon (top-right) */}
-        <TouchableOpacity style={styles.heart} activeOpacity={0.75} onPress={() => console.log('fave', item.id)}>
-          <Text style={styles.heartText}>♡</Text>
+        {/* Favorite button (top-right) */}
+        <TouchableOpacity style={styles.favBtn} onPress={() => toggleFavorite(item.id)} accessibilityLabel="Toggle favorite">
+          <Heart size={16} color={favorites[item.id] ? '#ef4444' : '#111827'} />
         </TouchableOpacity>
       </View>
 
@@ -53,44 +95,194 @@ const ProductCard: React.FC<{ item: ProductItem; cardWidth: number }> = ({ item,
         <Text style={styles.productTitle} numberOfLines={2}>{item.title}</Text>
         <Text style={styles.price}>{item.price}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
-const CategoryProductsGrid: React.FC<{ title: string; items: ProductItem[] }> = ({ title, items }) => {
+const CategoryProductsGrid: React.FC<{ title?: string; items?: ProductItem[]; categoryId?: string; navigate?: (screen: string, params?: any) => void }> = ({ title, items, categoryId, navigate }) => {
   const { width } = useWindowDimensions();
-  const padding = 16;
+  const padding = 0;
   const columns = 2;
-  const gap = 12;
+  const gap = 2;
   const cardWidth = Math.floor((width - padding * 2 - gap * (columns - 1)) / columns);
+
+  const [favorites, setFavorites] = useState<Record<number, boolean>>({});
+  const [loading, setLoading] = useState(false);
+  const [categoryProducts, setCategoryProducts] = useState<ProductItem[]>([]);
+  const [categoryTitle, setCategoryTitle] = useState(title || '');
+
+  const toggleFavorite = (id: number) => setFavorites(prev => ({ ...prev, [id]: !prev[id] }));
+
+  // Helper function to get product image with fallback
+  const getProductImage = (product: Product): any => {
+    // First try main product images
+    if (product.images && product.images.length > 0 && product.images[0]) {
+      return { uri: product.images[0] };
+    }
+
+    // Then try to get image from variants
+    if (product.variants && product.variants.length > 0) {
+      for (const variant of product.variants) {
+        if (variant.images && variant.images.length > 0) {
+          return { uri: `https://backend.originplatforms.co${variant.images[0]}` };
+        }
+      }
+    }
+
+    // Finally, use placeholder
+    return placeholderImage;
+  };
+
+  // Get badge type based on product tags or status
+  const getProductBadges = (product: Product) => {
+    if (product.tags?.includes('hot') || product.tags?.includes('trending')) {
+      return { text: 'Hot', color: '#F74B81' };
+    }
+    if (product.discountPercentage && parseFloat(product.discountPercentage) > 0) {
+      return { text: 'Sale', color: '#2EBB77' };
+    }
+    if (product.tags?.includes('new')) {
+      return { text: 'New', color: '#B479D9' };
+    }
+    return null;
+  };
+
+  // Transform API Product to ProductItem
+  const transformProduct = (product: Product): ProductItem => {
+    const badge = getProductBadges(product);
+    const basePrice = parseFloat(product.price);
+    const discountPercent = product.discountPercentage ? parseFloat(product.discountPercentage) : 0;
+    const finalPrice = discountPercent > 0 ? basePrice * (1 - discountPercent / 100) : basePrice;
+
+    return {
+      id: parseInt(product.id),
+      image: getProductImage(product),
+      title: product.name,
+      price: `Rs ${finalPrice.toFixed(0)}`,
+      badge: badge?.text,
+      badgeColor: badge?.color,
+    };
+  };
+
+  useEffect(() => {
+    const fetchCategoryProducts = async () => {
+      if (items && items.length > 0) {
+        // Use provided items if available
+        setCategoryProducts(items);
+        return;
+      }
+
+      try {
+        setLoading(true);
+
+        // Fetch categories and products
+        const categoryTree = await CategoriesService.getCategoryTree();
+        const productsResponse = await ProductsService.getProductCatalog({ limit: 100 });
+        const allProducts: Product[] = productsResponse.data || productsResponse || [];
+
+        if (categoryId) {
+          // Try to find category metadata (to show nicer title) but still filter products even if metadata is missing
+          const category = categoryTree.find((cat: Category) => cat.id === categoryId);
+          if (category) {
+            setCategoryTitle(category.name);
+          } else {
+            // Fallback title
+            setCategoryTitle(title || 'Products');
+          }
+
+          // Filter products that match the categoryId or fall under its children (if metadata found)
+          const categoryProductList = allProducts.filter((product: Product) =>
+            product.category?.id === categoryId || (category && category.children?.some((child: Category) => child.id === product.category?.id))
+          );
+
+          // Special case: a "featured" category may represent uncategorized or highlighted products
+          if (categoryProductList.length === 0 && categoryId === 'featured') {
+            // Find products without a known category (uncategorized)
+            const knownCategoryIds = new Set<string>(
+              categoryTree.flatMap((c: Category) => [c.id, ...(c.children?.map(ch => ch.id) || [])])
+            );
+            const uncategorized = allProducts.filter((p: Product) => !p.category || !knownCategoryIds.has(p.category.id));
+            setCategoryTitle('Featured Products');
+            setCategoryProducts(uncategorized.slice(0, 8).map(transformProduct));
+          } else {
+            setCategoryProducts(categoryProductList.slice(0, 8).map(transformProduct));
+          }
+        } else {
+          // Group products by category
+          const grouped: { category: Category; products: Product[] }[] = [];
+
+          for (const category of categoryTree) {
+            const categoryProductList = allProducts.filter((product: Product) =>
+              product.category?.id === category.id || 
+              category.children?.some((child: Category) => child.id === product.category?.id)
+            );
+
+            if (categoryProductList.length > 0) {
+              grouped.push({
+                category,
+                products: categoryProductList.slice(0, 8)
+              });
+            }
+          }
+
+          // Use first category with products
+          if (grouped.length > 0) {
+            setCategoryTitle(grouped[0].category.name);
+            setCategoryProducts(grouped[0].products.map(transformProduct));
+          }
+        }
+
+      } catch (error) {
+        console.error('Failed to fetch category products:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCategoryProducts();
+  }, [categoryId]);
+
+  const displayItems = items || categoryProducts;
+
+  if (loading) {
+    return (
+      <View style={[styles.section, { justifyContent: 'center', alignItems: 'center', minHeight: 200 }]}>
+        <ActivityIndicator size="large" color="#E05659" />
+      </View>
+    );
+  }
+
+  if (displayItems.length === 0) {
+    return null;
+  }
 
   return (
     <View style={styles.section}>
       <View style={styles.headerRow}>
-        <Text style={styles.heading}>{title}</Text>
-        <TouchableOpacity activeOpacity={0.7} onPress={() => console.log('see more', title)} style={styles.seeMoreBtn}>
+        <Text style={styles.heading}>{categoryTitle}</Text>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => console.log('see more', categoryTitle)} style={styles.seeMoreBtn}>
           <Text style={styles.seeMore}>See More</Text>
           <Text style={styles.seeMoreArrow}>›</Text>
         </TouchableOpacity>
       </View> 
 
-      <FlatList
-        data={items}
-        keyExtractor={(i) => String(i.id)}
-        numColumns={columns}
-        columnWrapperStyle={{ justifyContent: 'space-between', marginBottom: 14 }}
-        renderItem={({ item }) => <ProductCard item={item} cardWidth={cardWidth} />}
-        scrollEnabled={false}
-        contentContainerStyle={{ paddingHorizontal: padding }}
-      />
+      <View style={{ paddingHorizontal: 0 }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+          {displayItems.map((item, index) => (
+            <ProductCard key={item.id} item={item} cardWidth={cardWidth} isLeft={index % 2 === 0} favorites={favorites} toggleFavorite={toggleFavorite} navigate={navigate} />
+          ))}
+        </View>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+
   section: {
     marginTop: 12,
-    paddingVertical: 8,
+    paddingVertical: 1,
+    paddingHorizontal: 0,
     backgroundColor: '#fff',
   },
   headerRow: {
@@ -123,13 +315,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   card: {
+    
     backgroundColor: '#fff',
     borderRadius: 8,
     overflow: 'hidden',
     // subtle shadow
     shadowColor: '#000',
     shadowOpacity: 0.06,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 3, height: 2 },
     shadowRadius: 4,
     elevation: 3,
   },
@@ -141,33 +334,49 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     resizeMode: 'cover',
+    
   },
   badge: {
     position: 'absolute',
-    top: 10,
-    left: 10,
+    width: 60,
+    height:31,
+    top: -1,
+    left: -5,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 16,
+    borderTopLeftRadius: 15,
+    borderBottomRightRadius:20,
     zIndex: 2,
   },
   badgeText: {
     color: '#fff',
-    fontWeight: '700',
-    fontSize: 12,
+    fontWeight: '400',
+    fontSize: 16,
   },
   heart: {
     position: 'absolute',
     top: 8,
     right: 8,
     backgroundColor: '#fff',
-    width: 34,
-    height: 34,
+    width: 38,
+    height: 38,
     borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: '#F2F2F2',
+  },
+  favBtn: {
+    position: 'absolute',
+    right: 8,
+    top: 8,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
   },
   heartText: {
     color: '#FF5A78',
@@ -190,27 +399,110 @@ const styles = StyleSheet.create({
   },
 });
 
+// A wrapper component that fetches and renders multiple category sections
+export const CategorySections: React.FC<{ navigate?: (screen: string, params?: any) => void }> = ({ navigate }) => {
+  const [categoryGroups, setCategoryGroups] = useState<{ category: Category; products: Product[] }[]>([]);
+  const [loading, setLoading] = useState(true);
 
-// A small wrapper that renders the two example sections using local assets
-export const CategorySections: React.FC = () => {
-  const defaultItemsSaree: ProductItem[] = [
-    { id: 1, image: w_h1, title: 'Rani Pink Banarasi Silk Saree', price: 'Rs 500', badge: 'Hot', badgeColor: '#FF5A8A' },
-    { id: 2, image: w_h2, title: 'Sunset Orange Cotton Silk Saree', price: 'Rs 740', badge: 'Hot', badgeColor: '#FFD166' },
-    { id: 3, image: w_h3, title: 'Rani Pink Banarasi Silk Saree', price: 'Rs 500' },
-    { id: 4, image: w_h4, title: 'Sunset Orange Cotton Silk Saree', price: 'Rs 740' },
-  ];
+  useEffect(() => {
+    const fetchAllCategories = async () => {
+      try {
+        setLoading(true);
 
-  const defaultItemsGhagra: ProductItem[] = [
-    { id: 11, image: s_h1, title: 'Rani Pink Banarasi Silk Saree', price: 'Rs 500' },
-    { id: 12, image: s_h2, title: 'Sunset Orange Cotton Silk Saree', price: 'Rs 740' },
-    { id: 13, image: s_h3, title: 'Rani Pink Banarasi Silk Saree', price: 'Rs 500', badge: 'Hot', badgeColor: '#3CCB8C' },
-    { id: 14, image: s_h4, title: 'Sunset Orange Cotton Silk Saree', price: 'Rs 740' },
-  ];
+        // Fetch categories and products
+        console.log('📁 Fetching categories...');
+        const categoryTree = await CategoriesService.getCategoryTree();
+        console.log('📊 Categories loaded:', categoryTree);
+
+        console.log('🛍️ Fetching products...');
+        const productsResponse = await ProductsService.getProductCatalog({ limit: 100 });
+        const allProducts: Product[] = productsResponse.data || productsResponse || [];
+        console.log('📦 Products loaded:', allProducts);
+
+        // Group products by category
+        const grouped: { category: Category; products: Product[] }[] = [];
+
+        for (const category of categoryTree) {
+          // Get products for this category and its subcategories
+          const categoryProductList = allProducts.filter((product: Product) => {
+            if (product.category?.id === category.id) return true;
+            if (category.children && category.children.length > 0) {
+              return category.children.some((child: Category) => child.id === product.category?.id);
+            }
+            return false;
+          });
+
+          if (categoryProductList.length > 0) {
+            grouped.push({
+              category,
+              products: categoryProductList.slice(0, 8)
+            });
+          }
+        }
+
+        // Handle uncategorized products
+        const categorizedProductIds = new Set();
+        grouped.forEach(group => {
+          group.products.forEach(product => {
+            categorizedProductIds.add(product.id);
+          });
+        });
+
+        const uncategorizedProducts = allProducts.filter((product: Product) =>
+          !categorizedProductIds.has(product.id)
+        );
+
+        if (uncategorizedProducts.length > 0) {
+          grouped.unshift({
+            category: {
+              id: 'featured',
+              name: 'Featured Products',
+              slug: 'featured-products',
+              description: 'Featured products from our collection'
+            },
+            products: uncategorizedProducts.slice(0, 8)
+          });
+        }
+
+        console.log('📋 Grouped products by category:', grouped);
+        setCategoryGroups(grouped);
+
+      } catch (error) {
+        console.error('❌ Failed to fetch categories:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAllCategories();
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={{ paddingVertical: 40, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#E05659" />
+        <Text style={{ marginTop: 10, color: '#666' }}>Loading products...</Text>
+      </View>
+    );
+  }
+
+  if (categoryGroups.length === 0) {
+    return (
+      <View style={{ paddingVertical: 40, justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ color: '#666' }}>No products available</Text>
+      </View>
+    );
+  }
 
   return (
     <>
-      <CategoryProductsGrid title="Saree / Ethnic Dress" items={defaultItemsSaree} />
-      <CategoryProductsGrid title="Ghagra" items={defaultItemsGhagra} />
+      {categoryGroups.map(({ category }) => (
+        <CategoryProductsGrid
+          key={category.id}
+          categoryId={category.id}
+          navigate={navigate}
+        />
+      ))}
     </>
   );
 };
