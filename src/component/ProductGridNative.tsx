@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,23 +7,39 @@ import {
   Dimensions,
   useWindowDimensions,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
+import CategoriesService from '../services/categoriesService';
 
 const SCREEN_WIDTH = Dimensions.get('window').width; // full device width for full-bleed elements
 
 interface Card {
-  id: number;
+  id: string | number;
   image: any;
   title: string;
   count: number;
 }
 
-const cards: Card[] = [
-  { id: 1, image: require('../../assets/categ-girl1.png'), title: 'Saree', count: 15 },
-  { id: 2, image: require('../../assets/categ-girl2.png'), title: 'Ghagra', count: 8 },
-  { id: 3, image: require('../../assets/categ-girl3.png'), title: 'Festival', count: 18 },
-  { id: 4, image: require('../../assets/categ-girl4.png'), title: 'Kurati', count: 9 },
-];
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  image?: string;
+  icon?: string;
+  children?: Category[];
+  productCount?: number;
+}
+
+// Default category images mapping (same as web version)
+const categoryImages: Record<string, any> = {
+  'electronics': require('../../assets/categ-girl1.png'),
+  'fashion': require('../../assets/categ-girl2.png'),
+  'home-garden': require('../../assets/categ-girl3.png'),
+  'sports-outdoors': require('../../assets/categ-girl4.png'),
+};
+
+const defaultFallback = require('../../assets/categ-girl1.png');
 
 const GradientBar: React.FC = () => {
   try {
@@ -45,36 +61,85 @@ const GradientBar: React.FC = () => {
 
 const ProductGridNative: React.FC = () => {
   const { width } = useWindowDimensions();
-  const numColumns = getNumColumns(width || Dimensions.get('window').width);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const renderItem = ({ item }: { item: Card }) => (
-    <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={() => console.log('open', item.title)}>
-      <Image source={item.image} style={styles.avatar} />
-      <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
-    </TouchableOpacity>
-  );
+  // Fetch categories from API (same logic as web version)
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setLoading(true);
+        const categoryTree = await CategoriesService.getCategoryTree();
+        console.log('📊 Categories loaded in ProductGridNative:', categoryTree);
+        setCategories(categoryTree);
+      } catch (error) {
+        console.error('❌ Failed to fetch categories:', error);
+        // Use fallback categories
+        const fallbackCategories = CategoriesService.getFallbackCategoryTree();
+        setCategories(fallbackCategories);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  // Get category image (React Native version)
+  const getCategoryImage = (category: Category): any => {
+    console.log(category);
+    if (category.image) {
+      // If it's a URL, return {uri: ...}
+      if (typeof category.image === 'string' && category.image.startsWith('http')) {
+        return { uri: category.image };
+      }
+    }
+    // Try mapping by slug
+    if (categoryImages[category.slug]) {
+      return categoryImages[category.slug];
+    }
+    return defaultFallback;
+  };
+
+  // Get product count (same as web version)
+  const getProductCount = (category: Category): number => {
+    return category.productCount || (category.children?.length || 0) * 5;
+  };
 
   return (
     <View style={styles.section}>
-        <GradientBar />
+      <GradientBar />
       <View style={styles.container}>
         <Text style={styles.heading}>Cloth's of Every Style</Text>
         <Text style={styles.subheading}>What's more, we do it right!</Text>
 
-        {/* Render categories in a single responsive row so all items are visible */}
-        <View style={styles.rowContainer}>
-          {cards.map((item) => {
-            // Force four items per row on most screens and leave small gaps
-            const itemWidth = Math.max(64, Math.floor((width - 32) / 4) - 8);
-            const avatarSize = Math.max(56, Math.floor(itemWidth * 0.72));
-            return (
-              <TouchableOpacity key={item.id} style={[styles.card, { width: itemWidth, marginHorizontal: 6 }]} activeOpacity={0.8} onPress={() => console.log('open', item.title)}>
-                <Image source={item.image} style={[styles.avatar, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]} />
-                <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        {loading ? (
+          <View style={{ paddingVertical: 48, alignItems: 'center' }}>
+            <ActivityIndicator size="large" color="#6C87E6" />
+          </View>
+        ) : (
+          <View style={styles.rowContainer}>
+            {categories.map((category) => {
+              // Force four items per row on most screens and leave small gaps
+              const itemWidth = Math.max(64, Math.floor((width - 32) / 4) - 8);
+              const avatarSize = Math.max(56, Math.floor(itemWidth * 0.72));
+              return (
+                <TouchableOpacity 
+                  key={category.id} 
+                  style={[styles.card, { width: itemWidth, marginHorizontal: 6 }]} 
+                  activeOpacity={0.8} 
+                  onPress={() => console.log('open category', category.slug)}
+                >
+                  <Image 
+                    source={getCategoryImage(category)} 
+                    style={[styles.avatar, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]} 
+                  />
+                  <Text style={styles.title} numberOfLines={1}>{category.name}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
 
         <View style={styles.barWrap}>
           <GradientBar />

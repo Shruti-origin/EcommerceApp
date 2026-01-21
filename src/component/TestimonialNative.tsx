@@ -82,9 +82,9 @@ const TestimonialNative: React.FC = () => {
   return (
     <ImageBackground
       source={require('../../assets/test-bg.png')}
-      style={styles.section}
+      style={[styles.section, { width: '100%' }]}
       resizeMode="cover"
-      imageStyle={{ opacity: 1 }}
+      imageStyle={{ resizeMode: 'cover', opacity: 1 }}
     >
       {/* Header */}
       <View style={styles.header}>
@@ -161,7 +161,8 @@ const TestimonialNative: React.FC = () => {
 const styles = StyleSheet.create({
   section: {
     marginTop: -60,
-    flex:1,
+    // ensure the background has space to render
+    minHeight: 420,
     paddingVertical: 80,
     // backgroundColor: '#FFF5F5',
     overflow: 'hidden',

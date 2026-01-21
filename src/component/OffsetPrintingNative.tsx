@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
 import { Heart, ArrowUpDown } from 'lucide-react-native';
+import { productService } from '../services/api';
+import { guestWishlistUtils } from '../utils/wishlistUtils';
 
 
 interface PrintingProduct {
-  id: number;
+  id: string;
   image: any;
   title: string;
   price: string;
+  images?: string[];
 }
 
 const GradientHeading: React.FC<{children: React.ReactNode}> = ({ children }) => {
@@ -41,23 +44,116 @@ const OffsetPrinting: React.FC<{ navigate?: (screen: string, params?: any) => vo
   const screenWidth = Dimensions.get('window').width;
   const numColumns = screenWidth >= 900 ? 4 : screenWidth >= 600 ? 3 : 2;
 
-  const [favorites, setFavorites] = useState<Record<number, boolean>>({});
-  const toggleFavorite = (id: number) => setFavorites(prev => ({ ...prev, [id]: !prev[id] }));
+  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
+  const [printingProducts, setPrintingProducts] = useState<PrintingProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  const toggleFavorite = (id: string) => setFavorites(prev => ({ ...prev, [id]: !prev[id] }));
 
-  const printingProducts: PrintingProduct[] = [
-    { id: 1, image: require('../../assets/s-h1.png'), title: 'Zone Sweatshirt', price: '$25.99' },
-    { id: 2, image: require('../../assets/s-h2.png'), title: "Zoo Men's t-shirt", price: '$15.99' },
-    { id: 3, image: require('../../assets/s-h3.png'), title: 'Toddler T-shirt', price: '$12.99' },
-    { id: 4, image: require('../../assets/s-h4.png'), title: 'Fine Jersey Tee', price: '$18.99' },
-   
-  ];
+  // Fetch products from API
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+
+        // First try the featured endpoint
+        let products: any[] = [];
+        try {
+          const featuredRes = await productService.getFeatured(8);
+          products = featuredRes.data || featuredRes || [];
+          if (!Array.isArray(products) || products.length === 0) {
+            throw new Error('No featured products');
+          }
+          console.log('[OffsetPrinting] fetched featured products');
+        } catch (featErr) {
+          console.warn('[OffsetPrinting] featured endpoint failed, trying products list', featErr);
+          // Fallback: try general products list (public)
+          try {
+            const allRes = await productService.getProducts({ limit: 8 });
+            products = allRes.data || allRes || [];
+            console.log('[OffsetPrinting] fetched products from getProducts');
+          } catch (allErr) {
+            console.warn('[OffsetPrinting] getProducts fallback failed, will use static fallback', allErr);
+            products = [];
+          }
+        }
+
+        // Map API products to component format
+        const mappedProducts: PrintingProduct[] = Array.isArray(products)
+          ? products.map((p: any) => {
+              const productImage = p.images && p.images.length > 0
+                ? p.images[0]
+                : (p.variants && p.variants.length > 0 && p.variants[0].images && p.variants[0].images.length > 0
+                    ? p.variants[0].images[0]
+                    : null);
+
+              return {
+                id: String(p.id),
+                image: productImage
+                  ? { uri: `https://backend.originplatforms.co${productImage}` }
+                  : require('../../assets/s-h1.png'),
+                title: p.name || 'Product',
+                price: p.price ? `Rs ${p.price}` : 'Rs 0',
+                images: p.images,
+              };
+            })
+          : [];
+
+        if (mappedProducts.length === 0) {
+          // final static fallback
+          setPrintingProducts([
+            { id: '1', image: require('../../assets/s-h1.png'), title: 'Zone Sweatshirt', price: '$25.99' },
+            { id: '2', image: require('../../assets/s-h2.png'), title: "Zoo Men's t-shirt", price: '$15.99' },
+            { id: '3', image: require('../../assets/s-h3.png'), title: 'Toddler T-shirt', price: '$12.99' },
+            { id: '4', image: require('../../assets/s-h4.png'), title: 'Fine Jersey Tee', price: '$18.99' },
+          ]);
+        } else {
+          setPrintingProducts(mappedProducts.slice(0, 8)); // Show first 8 products
+        }
+
+      } catch (error) {
+        console.error('Failed to fetch products:', error);
+        // Fallback to static products if API fails
+        setPrintingProducts([
+          { id: '1', image: require('../../assets/s-h1.png'), title: 'Zone Sweatshirt', price: '$25.99' },
+          { id: '2', image: require('../../assets/s-h2.png'), title: "Zoo Men's t-shirt", price: '$15.99' },
+          { id: '3', image: require('../../assets/s-h3.png'), title: 'Toddler T-shirt', price: '$12.99' },
+          { id: '4', image: require('../../assets/s-h4.png'), title: 'Fine Jersey Tee', price: '$18.99' },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  // Layout gap and item width (4px gap between columns; leftmost/rightmost touch container edges)
+  const GAP = 4; // requested 4px gap between left and right card
+  const totalGap = (numColumns - 1) * GAP;
+  // Use full screen width for item sizing so leftmost/rightmost touch the screen edges
+  const itemWidth = Math.floor((screenWidth - totalGap) / numColumns);
 
   const renderItem = ({ item }: { item: PrintingProduct }) => (
     <TouchableOpacity style={styles.card} activeOpacity={0.85} onPress={() => { console.log('[OffsetPrinting] card press', item); navigate?.('ProductDetails', { product: item }); }}>
       <View style={styles.imageWrap}>
         <Image source={item.image} style={styles.productImage} />
-        <TouchableOpacity style={styles.favBtn} onPress={() => toggleFavorite(item.id)} accessibilityLabel="Toggle favorite">
-          <Heart size={16} color={favorites[item.id] ? '#ef4444' : '#111827'} />
+        <TouchableOpacity style={styles.favBtn} onPress={async () => {
+          const isInWishlist = await guestWishlistUtils.isInWishlist(item.id);
+          if (isInWishlist) {
+            await guestWishlistUtils.removeItem(item.id);
+            toggleFavorite(item.id);
+          } else {
+            await guestWishlistUtils.addItem({
+              id: item.id,
+              title: item.title,
+              price: item.price,
+              image: item.image,
+            });
+            toggleFavorite(item.id);
+          }
+        }} accessibilityLabel="Toggle wishlist">
+          <Heart size={16} color={favorites[item.id] ? '#ef4444' : '#111827'} fill={favorites[item.id] ? '#ef4444' : 'none'} />
         </TouchableOpacity>
       </View>
 
@@ -94,13 +190,30 @@ const OffsetPrinting: React.FC<{ navigate?: (screen: string, params?: any) => vo
           </View>
         </View>
 
-        <View style={[styles.listContent, { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }]}>
-          {printingProducts.map((item) => (
-            <View key={item.id} style={{ width: Math.floor((screenWidth - 32 - (numColumns - 1) * 16) / numColumns), marginBottom: 12 }}>
-              {renderItem({ item })}
-            </View>
-          ))}
-        </View>
+        {loading ? (
+          <View style={{ padding: 40, alignItems: 'center' }}>
+            <ActivityIndicator size="large" color="#E84F30" />
+          </View>
+        ) : (
+          <View style={[styles.listContent, { flexDirection: 'row', flexWrap: 'wrap' }]}>
+            {printingProducts.map((item, index) => {
+              const col = index % numColumns;
+              // leftmost card (col===0) should touch left container edge (no left margin)
+              // rightmost card (col===numColumns-1) should touch right container edge (no right margin)
+              // middle columns get right margin = GAP to create 4px separation
+              const wrapperStyle = {
+                width: itemWidth,
+                marginBottom: 12,
+                marginRight: col === numColumns - 1 ? 0 : GAP,
+              };
+              return (
+                <View key={item.id} style={wrapperStyle}>
+                  {renderItem({ item })}
+                </View>
+              );
+            })}
+          </View>
+        )}
       </View>
     </View>
   );
@@ -157,6 +270,8 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingVertical: 8,
+    // shift inner list outwards so the first and last items touch container edges
+    marginHorizontal: -16,
   },
   row: {
     flex:1,
@@ -165,15 +280,18 @@ const styles = StyleSheet.create({
   },
   card: {
     flex: 1,
-    marginHorizontal: 8,
+    marginHorizontal: 0,
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 8,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 3, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 2,
+
+
+    
   },
   imageWrap: {
     width: '100%',

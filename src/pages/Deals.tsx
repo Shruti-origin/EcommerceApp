@@ -1,14 +1,15 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, FlatList, useWindowDimensions, Modal, Pressable } from 'react-native';
 
 import { ArrowRight, ArrowUpDown, ChevronDown, Funnel, List, Calendar, Heart } from 'lucide-react-native';
+import { guestWishlistUtils } from '../utils/wishlistUtils';
 
 // Ghagra items copied from CategoryProductsGrid
 const defaultItemsGhagra = [
-  { id: 11, image: require('../../assets/ghagra1.png'), title: 'Rani Pink Banarasi Silk Saree', price: 'Rs 500' },
-  { id: 12, image: require('../../assets/ghagra2.png'), title: 'Sunset Orange Cotton Silk Saree', price: 'Rs 740' },
-  { id: 13, image: require('../../assets/ghagra3.png'), title: 'Rani Pink Banarasi Silk Saree', price: 'Rs 500', badge: 'Hot', badgeColor: '#3CCB8C' },
-  { id: 14, image: require('../../assets/ghagra4.png'), title: 'Sunset Orange Cotton Silk Saree', price: 'Rs 740' },
+  { id: 11, image: require('../../assets/ghagra1.png'), title: 'Rani Pink Banarasi Silk Saree', price: 'Rs 500', productId: 'ghagra1', brand: 'Traditional', description: 'Beautiful Banarasi Silk Saree' },
+  { id: 12, image: require('../../assets/ghagra2.png'), title: 'Sunset Orange Cotton Silk Saree', price: 'Rs 740', productId: 'ghagra2', brand: 'Cotton Collection', description: 'Elegant Cotton Silk Saree' },
+  { id: 13, image: require('../../assets/ghagra3.png'), title: 'Rani Pink Banarasi Silk Saree', price: 'Rs 500', badge: 'Hot', badgeColor: '#3CCB8C', productId: 'ghagra3', brand: 'Premium', description: 'Premium Banarasi Silk Saree' },
+  { id: 14, image: require('../../assets/ghagra4.png'), title: 'Sunset Orange Cotton Silk Saree', price: 'Rs 740', productId: 'ghagra4', brand: 'Designer', description: 'Designer Cotton Silk Saree' },
 ];
 
 const Deals = ({ navigate }: { navigate?: (screen: string, params?: any) => void }) => {
@@ -20,25 +21,69 @@ const Deals = ({ navigate }: { navigate?: (screen: string, params?: any) => void
   const cardWidth = Math.floor((width - padding * 2 - gap * (columns - 1)) / columns);
 
   const [favorites, setFavorites] = useState<Record<number, boolean>>({});
-  const toggleFavorite = (id: number) => setFavorites((prev: Record<number, boolean>) => ({ ...prev, [id]: !prev[id] }));
 
-  // Dropdown/modal states & refs
+  // Load wishlist on mount
+  useEffect(() => {
+    loadWishlist();
+  }, []);
+
+  const loadWishlist = async () => {
+    try {
+      const wishlist = await guestWishlistUtils.getWishlist();
+      const favMap: Record<number, boolean> = {};
+      wishlist.items.forEach((item: any) => {
+        favMap[item.id] = true;
+      });
+      setFavorites(favMap);
+    } catch (error) {
+      console.error('Failed to load wishlist:', error);
+    }
+  };
+
+  const toggleFavorite = async (item: any) => {
+    try {
+      const isCurrentlyFavorite = favorites[item.id];
+      
+      if (isCurrentlyFavorite) {
+        // Remove from wishlist
+        await guestWishlistUtils.removeItem(String(item.id));
+        setFavorites((prev) => ({ ...prev, [item.id]: false }));
+      } else {
+        // Add to wishlist
+        const wishlistItem = {
+          id: String(item.id),
+          productId: item.productId || String(item.id),
+          name: item.title,
+          price: parseFloat(item.price.replace(/[^0-9.]/g, '')) || 0,
+          image: item.image,
+          brand: item.brand || 'Brand',
+          description: item.description || item.title,
+        };
+        await guestWishlistUtils.addItem(wishlistItem);
+        setFavorites((prev) => ({ ...prev, [item.id]: true }));
+      }
+
+      // Dispatch event to update wishlist page
+      if (typeof globalThis !== 'undefined' && (globalThis as any).dispatchEvent) {
+        try {
+          const CE = (globalThis as any).CustomEvent;
+          if (CE) {
+            (globalThis as any).dispatchEvent(new CE('wishlistUpdated'));
+          } else {
+            (globalThis as any).dispatchEvent({ type: 'wishlistUpdated' });
+          }
+        } catch (e) {}
+      }
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error);
+    }
+  };
+
+  // Dropdown/modal states
   const [sortVisible, setSortVisible] = useState(false);
   const [categoryVisible, setCategoryVisible] = useState(false);
   const [ageVisible, setAgeVisible] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
-
-  // refs for toolbar buttons (for measuring to anchor dropdowns)
-  const sortBtnRef = useRef<any>(null);
-  const categoryBtnRef = useRef<any>(null);
-  const ageBtnRef = useRef<any>(null);
-  const filterBtnRef = useRef<any>(null);
-
-  // anchor coordinates for dropdowns
-  const [sortAnchor, setSortAnchor] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
-  const [categoryAnchor, setCategoryAnchor] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
-  const [ageAnchor, setAgeAnchor] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
-  const [filterAnchor, setFilterAnchor] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
 
   // Selected values
   const [sortSelected, setSortSelected] = useState('Relevance');
@@ -68,8 +113,8 @@ const Deals = ({ navigate }: { navigate?: (screen: string, params?: any) => void
                 </View>
               ) : null}
 
-              <TouchableOpacity style={styles.favBtn} onPress={() => toggleFavorite(item.id)} accessibilityLabel="Toggle favorite">
-                <Heart size={16} color={favorites[item.id] ? '#ef4444' : '#111827'} />
+              <TouchableOpacity style={styles.favBtn} onPress={() => toggleFavorite(item)} accessibilityLabel="Toggle favorite">
+                <Heart size={16} color={favorites[item.id] ? '#ef4444' : '#9CA3AF'} fill={favorites[item.id] ? '#ef4444' : 'none'} />
               </TouchableOpacity>
             </View>
 
@@ -117,60 +162,32 @@ const Deals = ({ navigate }: { navigate?: (screen: string, params?: any) => void
             {/* Toolbar */}
             <View style={styles.toolbarRow}>
               <TouchableOpacity 
-                ref={sortBtnRef}
                 style={styles.tool} 
-                onPress={() => {
-                  console.log('Sort clicked');
-                  sortBtnRef.current?.measureInWindow((x: number, y: number, width: number, height: number) => {
-                    setSortAnchor({ x, y, width, height });
-                    setSortVisible(true);
-                  });
-                }}
+                onPress={() => setSortVisible(true)}
                 activeOpacity={0.6}
               > 
                 <ArrowUpDown size={16} color="#111827" style={{ marginRight: 6 }} />
                 <Text style={styles.toolText}>Sort</Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                ref={categoryBtnRef}
                 style={styles.tool} 
-                onPress={() => {
-                  console.log('Category clicked');
-                  categoryBtnRef.current?.measureInWindow((x: number, y: number, width: number, height: number) => {
-                    setCategoryAnchor({ x, y, width, height });
-                    setCategoryVisible(true);
-                  });
-                }}
+                onPress={() => setCategoryVisible(true)}
                 activeOpacity={0.6}
               > 
                 <Text style={styles.toolText}>Category</Text>
                 <ChevronDown size={14} color="#111827" style={{ marginLeft: 6 }} />
               </TouchableOpacity>
               <TouchableOpacity 
-                ref={ageBtnRef}
                 style={styles.tool} 
-                onPress={() => {
-                  console.log('Age clicked');
-                  ageBtnRef.current?.measureInWindow((x: number, y: number, width: number, height: number) => {
-                    setAgeAnchor({ x, y, width, height });
-                    setAgeVisible(true);
-                  });
-                }}
+                onPress={() => setAgeVisible(true)}
                 activeOpacity={0.6}
               > 
                 <Text style={styles.toolText}>Age</Text>
                 <ChevronDown size={14} color="#111827" style={{ marginLeft: 6 }} />
               </TouchableOpacity>
               <TouchableOpacity 
-                ref={filterBtnRef}
                 style={styles.tool} 
-                onPress={() => {
-                  console.log('Filter clicked');
-                  filterBtnRef.current?.measureInWindow((x: number, y: number, width: number, height: number) => {
-                    setFilterAnchor({ x, y, width, height });
-                    setFilterVisible(true);
-                  });
-                }}
+                onPress={() => setFilterVisible(true)}
                 activeOpacity={0.6}
               > 
                 <Funnel size={14} color="#111827" style={{ marginRight: 6 }} />
@@ -192,114 +209,134 @@ const Deals = ({ navigate }: { navigate?: (screen: string, params?: any) => void
         }
       />
 
-      {/* Sort Dropdown (anchored) */}
-      {sortVisible && sortAnchor && (
-        <>
-          <Pressable style={styles.modalOverlay} onPress={() => setSortVisible(false)} />
-          <View style={[styles.dropdown, { top: sortAnchor.y + sortAnchor.height, left: sortAnchor.x, width: 180 }]}>
+      {/* Sort Bottom Sheet */}
+      <Modal visible={sortVisible} transparent animationType="slide" onRequestClose={() => setSortVisible(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setSortVisible(false)} />
+        <View style={styles.bottomSheet}>
+          <View style={styles.sheetHandle} />
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Sort</Text>
+            <TouchableOpacity onPress={() => setSortVisible(false)}>
+              <Text style={styles.modalClose}>✕</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={styles.modalBody}>
             {['Relevance', 'New Arrivals', 'Price(High To Low)', 'Price (Low To High)', 'Rating', 'Discount'].map((option) => (
               <TouchableOpacity
                 key={option}
-                style={styles.dropdownItem}
+                style={styles.optionRow}
                 onPress={() => {
                   setSortSelected(option);
                   setSortVisible(false);
                 }}
               >
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <View style={[styles.radioOuter, sortSelected === option && styles.radioOuterActive]}>
-                    {sortSelected === option && <View style={styles.radioInner} />}
-                  </View>
-                  <Text style={[styles.optionText, { marginLeft: 12 }]}>{option}</Text>
+                <View style={[styles.radioOuter, sortSelected === option && styles.radioOuterActive]}>
+                  {sortSelected === option && <View style={styles.radioInner} />}
                 </View>
+                <Text style={styles.optionText}>{option}</Text>
               </TouchableOpacity>
             ))}
-          </View>
-        </>
-      )} 
+          </ScrollView>
+        </View>
+      </Modal> 
 
-      {/* Category Dropdown (anchored) */}
-      {categoryVisible && categoryAnchor && (
-        <>
-          <Pressable style={styles.modalOverlay} onPress={() => setCategoryVisible(false)} />
-          <View style={[styles.dropdown, { top: categoryAnchor.y + categoryAnchor.height, left: categoryAnchor.x, width: 250, maxHeight: 300 }]}>
-            <ScrollView style={{ maxHeight: 260 }} nestedScrollEnabled>
-              {['Saree', 'Lehenga Choli', 'Salwar Kameez', 'Anarkali Suits', 'Kurta & Kurta Sets', 'Indo-Western Ethnic Wear', 'Ethnic Gowns', 'Bridal Ethnic Wear', 'Festive Ethnic Wear', 'Sharara & Gharara Sets', 'Traditional Maharashtrian Wear', 'Handloom Ethnic Wear', 'Ethnic Co-Ord Sets'].map((cat) => (
-                <TouchableOpacity
-                  key={cat}
-                  style={styles.optionRow}
-                  onPress={() => {
-                    setCategoriesSelected((prev) =>
-                      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
-                    );
-                  }}
-                >
-                  <View style={[styles.checkbox, categoriesSelected.includes(cat) && styles.checkboxActive]}>
-                    {categoriesSelected.includes(cat) && <Text style={styles.checkmark}>✓</Text>}
-                  </View>
-                  <Text style={styles.optionText}>{cat}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', padding: 8 }}>
-              <TouchableOpacity style={styles.doneBtn} onPress={() => setCategoryVisible(false)}>
-                <Text style={styles.applyBtnText}>Done</Text>
-              </TouchableOpacity>
-            </View>
+      {/* Category Bottom Sheet */}
+      <Modal visible={categoryVisible} transparent animationType="slide" onRequestClose={() => setCategoryVisible(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setCategoryVisible(false)} />
+        <View style={styles.bottomSheet}>
+          <View style={styles.sheetHandle} />
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Category</Text>
+            <TouchableOpacity onPress={() => setCategoryVisible(false)}>
+              <Text style={styles.modalClose}>✕</Text>
+            </TouchableOpacity>
           </View>
-        </>
-      )} 
+          <ScrollView style={styles.modalBody}>
+            {['Saree', 'Lehenga Choli', 'Salwar Kameez', 'Anarkali Suits', 'Kurta & Kurta Sets', 'Indo-Western Ethnic Wear', 'Ethnic Gowns', 'Bridal Ethnic Wear', 'Festive Ethnic Wear', 'Sharara & Gharara Sets', 'Traditional Maharashtrian Wear', 'Handloom Ethnic Wear', 'Ethnic Co-Ord Sets'].map((cat) => (
+              <TouchableOpacity
+                key={cat}
+                style={styles.optionRow}
+                onPress={() => {
+                  setCategoriesSelected((prev) =>
+                    prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+                  );
+                }}
+              >
+                <View style={[styles.checkbox, categoriesSelected.includes(cat) && styles.checkboxActive]}>
+                  {categoriesSelected.includes(cat) && <Text style={styles.checkmark}>✓</Text>}
+                </View>
+                <Text style={styles.optionText}>{cat}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          <View style={styles.sheetFooter}>
+            <TouchableOpacity style={styles.applyBtn} onPress={() => setCategoryVisible(false)}>
+              <Text style={styles.applyBtnText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal> 
 
-      {/* Age Dropdown (anchored) */}
-      {ageVisible && ageAnchor && (
-        <>
-          <Pressable style={styles.modalOverlay} onPress={() => setAgeVisible(false)} />
-          <View style={[styles.dropdown, { top: ageAnchor.y + ageAnchor.height, left: ageAnchor.x, width: 220 }]}>
-            <ScrollView style={{ maxHeight: 260 }} nestedScrollEnabled>
-              {['0-5 Yrs (Infants & Toddlers)', '6-12 Yrs (Kids-Ethnic Wear)', '13-18 Yrs (Teen Collection)', '18-30 Yrs (Young Women)', '46-60yrs (Mature Women)', '60+ Yrs (Senior Women)'].map((age) => (
-                <TouchableOpacity
-                  key={age}
-                  style={styles.optionRow}
-                  onPress={() => {
-                    setAgesSelected((prev) =>
-                      prev.includes(age) ? prev.filter((a) => a !== age) : [...prev, age]
-                    );
-                  }}
-                >
-                  <View style={[styles.checkbox, agesSelected.includes(age) && styles.checkboxActive]}>
-                    {agesSelected.includes(age) && <Text style={styles.checkmark}>✓</Text>}
-                  </View>
-                  <Text style={styles.optionText}>{age}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-            <View style={{ padding: 8 }}>
-              <TouchableOpacity style={styles.applyBtn} onPress={() => setAgeVisible(false)}>
-                <Text style={styles.applyBtnText}>Apply</Text>
-              </TouchableOpacity>
-            </View>
+      {/* Age Bottom Sheet */}
+      <Modal visible={ageVisible} transparent animationType="slide" onRequestClose={() => setAgeVisible(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setAgeVisible(false)} />
+        <View style={styles.bottomSheet}>
+          <View style={styles.sheetHandle} />
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Age</Text>
+            <TouchableOpacity onPress={() => setAgeVisible(false)}>
+              <Text style={styles.modalClose}>✕</Text>
+            </TouchableOpacity>
           </View>
-        </>
-      )} 
+          <ScrollView style={styles.modalBody}>
+            {['0-5 Yrs (Infants & Toddlers)', '6-12 Yrs (Kids-Ethnic Wear)', '13-18 Yrs (Teen Collection)', '18-30 Yrs (Young Women)', '46-60yrs (Mature Women)', '60+ Yrs (Senior Women)'].map((age) => (
+              <TouchableOpacity
+                key={age}
+                style={styles.optionRow}
+                onPress={() => {
+                  setAgesSelected((prev) =>
+                    prev.includes(age) ? prev.filter((a) => a !== age) : [...prev, age]
+                  );
+                }}
+              >
+                <View style={[styles.checkbox, agesSelected.includes(age) && styles.checkboxActive]}>
+                  {agesSelected.includes(age) && <Text style={styles.checkmark}>✓</Text>}
+                </View>
+                <Text style={styles.optionText}>{age}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          <View style={styles.sheetFooter}>
+            <TouchableOpacity style={styles.applyBtn} onPress={() => setAgeVisible(false)}>
+              <Text style={styles.applyBtnText}>Apply</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal> 
 
-      {/* Filter Dropdown (anchored) */}
-      {filterVisible && filterAnchor && (
-        <>
-          <Pressable style={styles.modalOverlay} onPress={() => setFilterVisible(false)} />
-          <View style={[styles.dropdown, { top: filterAnchor.y + filterAnchor.height, left: filterAnchor.x, width: 240, maxHeight: 300 }]}>
-            <ScrollView style={{ maxHeight: 260 }} nestedScrollEnabled>
-              {['Category', 'Age', 'Color', 'Fabric', 'Size', 'Price', 'Rating', 'Occasion', 'Discount'].map((s) => (
-                <Text key={s} style={[styles.optionText, { paddingVertical: 10, paddingHorizontal: 12 }]}>{s}</Text>
-              ))}
-            </ScrollView>
-            <View style={{ padding: 8 }}>
-              <TouchableOpacity style={styles.applyBtn} onPress={() => setFilterVisible(false)}>
-                <Text style={styles.applyBtnText}>Apply</Text>
-              </TouchableOpacity>
-            </View>
+      {/* Filter Bottom Sheet */}
+      <Modal visible={filterVisible} transparent animationType="slide" onRequestClose={() => setFilterVisible(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setFilterVisible(false)} />
+        <View style={styles.bottomSheet}>
+          <View style={styles.sheetHandle} />
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Filters</Text>
+            <TouchableOpacity onPress={() => setFilterVisible(false)}>
+              <Text style={styles.modalClose}>✕</Text>
+            </TouchableOpacity>
           </View>
-        </>
-      )} 
+          <ScrollView style={styles.modalBody}>
+            {['Category', 'Age', 'Color', 'Fabric', 'Size', 'Price', 'Rating', 'Occasion', 'Discount'].map((s) => (
+              <Text key={s} style={[styles.optionText, { paddingVertical: 10, paddingHorizontal: 0 }]}>{s}</Text>
+            ))}
+          </ScrollView>
+          <View style={styles.sheetFooter}>
+            <TouchableOpacity style={styles.applyBtn} onPress={() => setFilterVisible(false)}>
+              <Text style={styles.applyBtnText}>Apply</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal> 
     </View>
   );
 };
@@ -366,21 +403,14 @@ timerSep: {
   toolText: { color: '#111827', fontWeight: '600' },
   
   // Modal styles   
-  modalContainer: { flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 16 },
-  modalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)' },
-  sortModal: { backgroundColor: '#fff', borderRadius: 12, width: '80%', maxWidth: 400, shadowColor: '#000', shadowOpacity: 0.25, shadowOffset: { width: 0, height: 2 }, shadowRadius: 8, elevation: 5 },
-  categoryModal: { backgroundColor: '#fff', borderRadius: 12, width: '85%', maxWidth: 450, maxHeight: '70%', shadowColor: '#000', shadowOpacity: 0.25, shadowOffset: { width: 0, height: 2 }, shadowRadius: 8, elevation: 10, zIndex: 10 },
-  ageModal: { backgroundColor: '#fff', borderRadius: 12, width: '85%', maxWidth: 450, maxHeight: '60%', shadowColor: '#000', shadowOpacity: 0.25, shadowOffset: { width: 0, height: 2 }, shadowRadius: 8, elevation: 10, zIndex: 10 },
-  filterModal: { backgroundColor: '#fff', borderRadius: 12, width: '90%', maxWidth: 500, maxHeight: '80%', shadowColor: '#000', shadowOpacity: 0.25, shadowOffset: { width: 0, height: 2 }, shadowRadius: 8, elevation: 10, zIndex: 10 },
-  sheetHandle: { width: 40, height: 5, backgroundColor: '#E5E7EB', borderRadius: 3, alignSelf: 'center', marginVertical: 8 },
-  sheetFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB' },
-  productCount: { color: '#6B7280', fontSize: 14, fontWeight: '600' },
-  doneBtn: { backgroundColor: '#75BD4B', paddingHorizontal: 18, paddingVertical: 8, borderRadius: 20 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'flex-end' },
+  bottomSheet: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '80%', width: '100%' },
+  sheetHandle: { width: 40, height: 5, backgroundColor: '#E5E7EB', borderRadius: 3, alignSelf: 'center', marginTop: 8, marginBottom: 4 },
+  sheetFooter: { paddingHorizontal: 20, paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' },
   modalTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
   modalClose: { fontSize: 24, color: '#6B7280', fontWeight: '400' },
   modalBody: { paddingHorizontal: 20, paddingVertical: 12, maxHeight: 400 },
-  filterBody: { paddingHorizontal: 20, paddingVertical: 12 },
   optionRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
   optionText: { fontSize: 14, color: '#374151', marginLeft: 12 },
   radioOuter: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: '#D1D5DB', justifyContent: 'center', alignItems: 'center' },
@@ -389,11 +419,8 @@ timerSep: {
   checkbox: { width: 20, height: 20, borderRadius: 4, borderWidth: 2, borderColor: '#D1D5DB', justifyContent: 'center', alignItems: 'center' },
   checkboxActive: { backgroundColor: '#E05659', borderColor: '#E05659' },
   checkmark: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  applyBtn: { backgroundColor: '#75BD4B', marginHorizontal: 20, marginVertical: 16, paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
+  applyBtn: { backgroundColor: '#75BD4B', paddingVertical: 12, borderRadius: 8, alignItems: 'center', width: '100%' },
   applyBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  filterSection: { fontSize: 15, fontWeight: '600', color: '#111827', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
-  dropdown: { position: 'absolute', backgroundColor: '#fff', borderRadius: 8, shadowColor: '#000', shadowOpacity: 0.12, shadowOffset: { width: 0, height: 4 }, shadowRadius: 8, elevation: 8, zIndex: 1000 },
-  dropdownItem: { paddingHorizontal: 12, paddingVertical: 10 },
 });
 
 export default Deals;

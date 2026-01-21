@@ -11,6 +11,7 @@ import {
 import { Heart } from 'lucide-react-native';
 import CategoriesService from '../services/categoriesService';
 import ProductsService from '../services/productsService';
+import { guestWishlistUtils } from '../utils/wishlistUtils';
 
 // Fallback images for when API doesn't return images
 const placeholderImage = require('../../assets/s-h1.png');
@@ -57,21 +58,24 @@ interface Category {
 }
 
 interface ProductItem {
-  id: number;
+  id: string; // keep as string to preserve backend IDs (UUIDs)
   image: any;
   title: string;
   price: string;
   badge?: string;
   badgeColor?: string;
-} 
+  raw?: Product; // original API product for navigation/fetching
+}
 
-const ProductCard: React.FC<{ item: ProductItem; cardWidth: number; isLeft?: boolean; favorites: Record<number, boolean>; toggleFavorite: (id: number) => void; navigate?: (screen: string, params?: any) => void }> = ({ item, cardWidth, isLeft, favorites, toggleFavorite, navigate }) => {
+
+
+const ProductCard: React.FC<{ item: ProductItem; cardWidth: number; isLeft?: boolean; favorites: Record<string, boolean>; toggleFavorite: (id: number | string) => void; navigate?: (screen: string, params?: any) => void }> = ({ item, cardWidth, isLeft, favorites, toggleFavorite, navigate }) => {
   const imageHeight = Math.round(cardWidth * 1.18);
 
   return (
     <TouchableOpacity
       activeOpacity={0.85}
-      onPress={() => navigate?.('ProductDetails', { product: item })}
+      onPress={() => navigate?.('ProductDetails', { product: item.raw || item })}
       accessibilityLabel={`Open ${item.title}`}
       style={[styles.card, { width: cardWidth, marginRight: isLeft ? 2 : 0 }]}
     >
@@ -86,8 +90,22 @@ const ProductCard: React.FC<{ item: ProductItem; cardWidth: number; isLeft?: boo
         ) : null}
 
         {/* Favorite button (top-right) */}
-        <TouchableOpacity style={styles.favBtn} onPress={() => toggleFavorite(item.id)} accessibilityLabel="Toggle favorite">
-          <Heart size={16} color={favorites[item.id] ? '#ef4444' : '#111827'} />
+        <TouchableOpacity style={styles.favBtn} onPress={async () => {
+          const isInWishlist = await guestWishlistUtils.isInWishlist(item.id);
+          if (isInWishlist) {
+            await guestWishlistUtils.removeItem(item.id);
+            toggleFavorite(item.id);
+          } else {
+            await guestWishlistUtils.addItem({
+              id: item.id,
+              title: item.title,
+              price: item.price,
+              image: item.image,
+            });
+            toggleFavorite(item.id);
+          }
+        }} accessibilityLabel="Toggle wishlist">
+          <Heart size={16} color={favorites[item.id] ? '#ef4444' : '#111827'} fill={favorites[item.id] ? '#ef4444' : 'none'} />
         </TouchableOpacity>
       </View>
 
@@ -106,12 +124,16 @@ const CategoryProductsGrid: React.FC<{ title?: string; items?: ProductItem[]; ca
   const gap = 2;
   const cardWidth = Math.floor((width - padding * 2 - gap * (columns - 1)) / columns);
 
-  const [favorites, setFavorites] = useState<Record<number, boolean>>({});
+  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
   const [categoryProducts, setCategoryProducts] = useState<ProductItem[]>([]);
   const [categoryTitle, setCategoryTitle] = useState(title || '');
 
-  const toggleFavorite = (id: number) => setFavorites(prev => ({ ...prev, [id]: !prev[id] }));
+  // Accept either number or string ids and store keys as strings
+  const toggleFavorite = (id: number | string) => {
+    const key = String(id);
+    setFavorites(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
   // Helper function to get product image with fallback
   const getProductImage = (product: Product): any => {
@@ -155,12 +177,13 @@ const CategoryProductsGrid: React.FC<{ title?: string; items?: ProductItem[]; ca
     const finalPrice = discountPercent > 0 ? basePrice * (1 - discountPercent / 100) : basePrice;
 
     return {
-      id: parseInt(product.id),
+      id: String(product.id),
       image: getProductImage(product),
       title: product.name,
       price: `Rs ${finalPrice.toFixed(0)}`,
       badge: badge?.text,
       badgeColor: badge?.color,
+      raw: product,
     };
   };
 
@@ -269,7 +292,7 @@ const CategoryProductsGrid: React.FC<{ title?: string; items?: ProductItem[]; ca
       <View style={{ paddingHorizontal: 0 }}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
           {displayItems.map((item, index) => (
-            <ProductCard key={item.id} item={item} cardWidth={cardWidth} isLeft={index % 2 === 0} favorites={favorites} toggleFavorite={toggleFavorite} navigate={navigate} />
+            <ProductCard key={String(item.id)} item={item} cardWidth={cardWidth} isLeft={index % 2 === 0} favorites={favorites} toggleFavorite={toggleFavorite} navigate={navigate} />
           ))}
         </View>
       </View>
