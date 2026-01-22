@@ -20,6 +20,7 @@ import SignInNative from './src/pages/SignInNative';
 import SignUpNative from './src/pages/SignUpNative';
 import PaymentMethodNative from './src/pages/PaymentMethodNative';
 import MyOrders from './src/pages/MyOrders';
+import CategoryProducts from './src/pages/CategoryProducts';
 import SplashScreen from './src/component/SplashScreen';
 import {
   SafeAreaProvider,
@@ -109,7 +110,7 @@ function AppContent() {
     return () => sub.remove();
   }, [history, route]);
 
-  const isBackButtonPage = route.name === 'ProductDetails' || route.name === 'WishList' || route.name === 'Search' || route.name === 'Cart' || route.name === 'PaymentMethod' || route.name === 'MyOrders';
+  const isBackButtonPage = route.name === 'ProductDetails' || route.name === 'WishList' || route.name === 'Search' || route.name === 'Cart' || route.name === 'PaymentMethod' || route.name === 'MyOrders' || route.name === 'CategoryProducts';
 
   return (
     <View style={styles.container}>
@@ -131,6 +132,8 @@ function AppContent() {
           <WishList navigate={navigate} goBack={goBack} />
         ) : route.name === 'Cart' ? (
           <Cart navigate={navigate} goBack={goBack} />
+        ) : route.name === 'CategoryProducts' ? (
+          <CategoryProducts categoryId={route.params?.categoryId} title={route.params?.title} items={route.params?.items} navigate={navigate} goBack={goBack} />
         ) : route.name === 'SignIn' ? (
           <SignInNative navigate={navigate} goBack={goBack} />
         ) : route.name === 'SignUp' ? (

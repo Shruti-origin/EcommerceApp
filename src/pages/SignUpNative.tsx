@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { SafeAreaView, View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Eye, EyeOff } from 'lucide-react-native';
 import { authService } from '../services/api';
 import { guestCartUtils } from '../utils/cartUtils';
 
@@ -10,6 +11,10 @@ const SignUpNative = ({ navigate, goBack }: { navigate?: (name: string, params?:
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [secure, setSecure] = useState(true);
+  const [passwordFocused, setPasswordFocused] = useState(false);
+  const [phoneFocused, setPhoneFocused] = useState(false);
+  const scrollRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -79,17 +84,41 @@ const SignUpNative = ({ navigate, goBack }: { navigate?: (name: string, params?:
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.card}>
+<View style={[styles.card, (passwordFocused || phoneFocused) && styles.cardShifted]}>
         <Text style={styles.title}>Create account</Text>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
         {success ? <Text style={styles.success}>{success}</Text> : null}
 
-        <TextInput style={styles.input} placeholder="First name" value={firstName} onChangeText={setFirstName} />
-        <TextInput style={styles.input} placeholder="Last name" value={lastName} onChangeText={setLastName} />
-        <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
-        <TextInput style={styles.input} placeholder="Phone (10 digits)" value={phone} onChangeText={(t) => setPhone(t.replace(/\D/g, ''))} keyboardType="number-pad" maxLength={10} />
-        <TextInput style={styles.input} placeholder="Password" secureTextEntry value={password} onChangeText={setPassword} />
+        <TextInput style={styles.input} placeholder="First name" placeholderTextColor="#000" value={firstName} onChangeText={setFirstName} />
+        <TextInput style={styles.input} placeholder="Last name" placeholderTextColor="#000" value={lastName} onChangeText={setLastName} />
+        <TextInput style={styles.input} placeholder="Email" placeholderTextColor="#000" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+        <TextInput style={styles.input} placeholder="Phone (10 digits)" placeholderTextColor="#000" value={phone} onChangeText={(t) => setPhone(t.replace(/\D/g, ''))} keyboardType="number-pad" maxLength={10} onFocus={() => setPhoneFocused(true)} onBlur={() => setPhoneFocused(false)} />
+        <View style={styles.passwordWrapper}>
+          <TextInput
+            style={[styles.input, styles.passwordInput]}
+            placeholder="Password"
+            placeholderTextColor="#000"
+            secureTextEntry={secure}
+            value={password}
+            onChangeText={setPassword}
+            onFocus={() => setPasswordFocused(true)}
+            onBlur={() => setPasswordFocused(false)}
+            autoCapitalize="none"
+            autoCorrect={false}
+            textContentType="password"
+            importantForAutofill="yes"
+          />
+
+          <TouchableOpacity
+            style={styles.eyeButton}
+            onPress={() => setSecure(s => !s)}
+            activeOpacity={0.7}
+            accessibilityLabel={secure ? 'Show password' : 'Hide password'}
+          >
+            {secure ? <Eye size={18} color="#64748B" /> : <EyeOff size={18} color="#64748B" />}
+          </TouchableOpacity>
+        </View>
 
         <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleSignUp} disabled={loading}>
           {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Create account</Text>}
@@ -109,8 +138,12 @@ const SignUpNative = ({ navigate, goBack }: { navigate?: (name: string, params?:
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
   card: { width: '92%', maxWidth: 700, backgroundColor: '#fff', padding: 20, borderRadius: 12, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, elevation: 6 },
+  cardShifted: { marginTop: 30 },
   title: { fontSize: 22, fontWeight: '700', textAlign: 'center', marginBottom: 12 },
-  input: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12 },
+  input: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12, color: '#000' },
+  passwordWrapper: { position: 'relative' },
+  passwordInput: { paddingRight: 40 },
+  eyeButton: { position: 'absolute', right: 10, top: 12 },
   button: { backgroundColor: '#e0555a', paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
   buttonDisabled: { backgroundColor: '#9CA3AF' },
   buttonText: { color: '#fff', fontWeight: '700' },

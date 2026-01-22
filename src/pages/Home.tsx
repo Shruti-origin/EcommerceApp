@@ -3,6 +3,7 @@ import { View, ScrollView, StyleSheet } from 'react-native';
 import HeroSection from '../component/HeroSectionNative';
 import BestSelling from '../component/BestSelling';
 import OffsetPrintingNative from '../component/OffsetPrintingNative';
+import ScrollingSectionNative from '../component/ScrollingSectionNative';
 
 import Features from '../component/FeaturesNative';
 import PrintingNative from '../component/PrintingNative';
@@ -23,7 +24,8 @@ const Home = ({ navigate }: { navigate?: (screen: string, params?: any) => void 
 
       <BestSelling navigate={navigate} />
 
-     
+      {/* Scrolling brand section */}
+      <ScrollingSectionNative />
 
        {/* Offset Printing Section */}
     {/*  */}

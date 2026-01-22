@@ -32,13 +32,24 @@ const Cart = ({ navigate, goBack }: { navigate?: (name: string, params?: any) =>
     setLoading(true);
     try {
       const c = await guestCartUtils.getCart();
-      setCart(c);
+      console.log('[Cart] loaded cart:', c);
+
+      // Normalize cart shape to prevent render errors
+      const normalized = {
+        items: Array.isArray(c?.items) ? c.items : [],
+        total: typeof c?.total === 'number' ? c.total : Number(c?.total) || 0,
+        itemCount: typeof c?.itemCount === 'number' ? c.itemCount : (Array.isArray(c?.items) ? c.items.length : 0),
+      };
+
+      setCart(normalized);
       
       // Check authentication
       const token = await AsyncStorage.getItem('token');
       setIsAuthenticated(!!token);
     } catch (e) {
       console.error('Failed to load cart', e);
+      // Fall back to empty cart to avoid crashes
+      setCart({ items: [], total: 0, itemCount: 0 });
     } finally {
       setLoading(false);
     }
@@ -235,10 +246,16 @@ const Cart = ({ navigate, goBack }: { navigate?: (name: string, params?: any) =>
           <View style={styles.itemsSection}>
             <FlatList
               data={cart.items}
-              keyExtractor={(i) => i.id}
+              keyExtractor={(i) => String(i.id)}
               renderItem={renderItem}
-              scrollEnabled={false}
+              // Allow FlatList to scroll independently
+              scrollEnabled={true}
               contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16 }}
+              ListEmptyComponent={() => (
+                <View style={{ padding: 24 }}>
+                  <Text style={{ textAlign: 'center', color: '#6B7280' }}>No items in cart</Text>
+                </View>
+              )}
             />
           </View>
 

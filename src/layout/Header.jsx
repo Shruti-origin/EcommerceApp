@@ -11,15 +11,19 @@ import {
   Dimensions,
   Modal,
   Alert,
+  StatusBar,
+  ScrollView,
 } from 'react-native';
-import { Truck, Search, Menu,  ShoppingBag, Home, List, Gift, Heart as HeartIcon, User, ChevronLeft, Heart, LogOut } from 'lucide-react-native';
+import { Truck, Search, Menu, ShoppingBag, Home, List, Gift, Heart as HeartIcon, User, ChevronLeft, Heart, LogOut, Sparkles, TrendingUp } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { guestCartUtils } from '../utils/cartUtils';
+import { guestWishlistUtils } from '../utils/wishlistUtils';
 
 const Header = ({ navigate, setActive, goBack, showBackButton = false }) => {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [cartCount, setCartCount] = useState(0);
+  const [wishlistCount, setWishlistCount] = useState(0);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
 
@@ -37,7 +41,11 @@ const Header = ({ navigate, setActive, goBack, showBackButton = false }) => {
       globalThis.addEventListener('logoutSuccess', handleAuthChange);
     }
 
+    // Also check auth when component becomes visible
+    const intervalId = setInterval(checkAuth, 3000);
+
     return () => {
+      clearInterval(intervalId);
       if (typeof globalThis !== 'undefined' && globalThis.removeEventListener) {
         globalThis.removeEventListener('loginSuccess', handleAuthChange);
         globalThis.removeEventListener('logoutSuccess', handleAuthChange);
@@ -108,7 +116,7 @@ const Header = ({ navigate, setActive, goBack, showBackButton = false }) => {
     );
   };
 
-  // Load cart count on mount and set up interval to check for updates
+  // Load cart and wishlist counts on mount and set up intervals to check for updates
   useEffect(() => {
     const loadCartCount = async () => {
       const cart = await guestCartUtils.getCart();
@@ -116,18 +124,31 @@ const Header = ({ navigate, setActive, goBack, showBackButton = false }) => {
       setCartCount(totalItems);
     };
 
-    loadCartCount();
+    const loadWishlistCount = async () => {
+      try {
+        const wl = await guestWishlistUtils.getWishlist();
+        const count = Array.isArray(wl.items) ? wl.items.length : 0;
+        setWishlistCount(count);
+      } catch (e) {
+        setWishlistCount(0);
+      }
+    };
 
-    // Check cart count every 2 seconds to catch updates
-    const interval = setInterval(loadCartCount, 2000);
+    loadCartCount();
+    loadWishlistCount();
+
+    // Check counts every 2 seconds to catch updates
+    const interval = setInterval(() => { loadCartCount(); loadWishlistCount(); }, 2000);
 
     return () => clearInterval(interval);
   }, []);
 
   // Reduced width and vertical padding so sidebar is smaller and centered
-  const sidebarWidth = Math.min(260, Dimensions.get('window').width * 0.7);
+  const sidebarWidth = Math.min(280, Dimensions.get('window').width * 0.75);
   const translateX = useRef(new Animated.Value(-sidebarWidth)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
+  const menuItemsOpacity = useRef(new Animated.Value(0)).current;
+  const menuItemsTranslateY = useRef(new Animated.Value(20)).current;
 
   const handleSearch = () => {
     const q = String(searchQuery || '').trim();
@@ -142,16 +163,57 @@ const Header = ({ navigate, setActive, goBack, showBackButton = false }) => {
     setOpen(true);
     Animated.parallel([
       // animate to dark overlay (nearly-opaque) so content beneath is hidden but not white
-      Animated.timing(overlayOpacity, { toValue: 0.8, duration: 220, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-      Animated.timing(translateX, { toValue: 0, duration: 240, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-    ]).start();
+      Animated.timing(overlayOpacity, { toValue: 0.6, duration: 300, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+      Animated.spring(translateX, { 
+        toValue: 0, 
+        tension: 65,
+        friction: 11,
+        useNativeDriver: true 
+      }),
+    ]).start(() => {
+      // Staggered animation for menu items
+      Animated.parallel([
+        Animated.timing(menuItemsOpacity, {
+          toValue: 1,
+          duration: 400,
+          delay: 100,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.spring(menuItemsTranslateY, {
+          toValue: 0,
+          tension: 50,
+          friction: 8,
+          delay: 10,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    });
   };
 
   const closeSidebar = () => {
     Animated.parallel([
-      Animated.timing(overlayOpacity, { toValue: 0, duration: 200, easing: Easing.in(Easing.quad), useNativeDriver: true }),
-      Animated.timing(translateX, { toValue: -sidebarWidth, duration: 220, easing: Easing.in(Easing.quad), useNativeDriver: true }),
-    ]).start(() => setOpen(false));
+      Animated.timing(menuItemsOpacity, { 
+        toValue: 0, 
+        duration: 150, 
+        useNativeDriver: true 
+      }),
+      Animated.timing(overlayOpacity, { 
+        toValue: 0, 
+        duration: 250, 
+        easing: Easing.in(Easing.ease), 
+        useNativeDriver: true 
+      }),
+      Animated.timing(translateX, { 
+        toValue: -sidebarWidth, 
+        duration: 280, 
+        easing: Easing.in(Easing.ease), 
+        useNativeDriver: true 
+      }),
+    ]).start(() => {
+      setOpen(false);
+      menuItemsTranslateY.setValue(20);
+    });
   };
 
   const handleSelect = (key) => {
@@ -221,6 +283,11 @@ const Header = ({ navigate, setActive, goBack, showBackButton = false }) => {
 
         <TouchableOpacity style={styles.iconBtn} activeOpacity={0.7} accessibilityLabel="Open wishlist" onPress={() => { if (open) closeSidebar(); navigate?.('WishList'); }}>
           <HeartIcon size={18} color="#666" />
+          {wishlistCount > 0 && (
+            <View style={styles.wishlistBadge}>
+              <Text style={styles.wishlistBadgeText}>{wishlistCount}</Text>
+            </View>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.cartBtn} activeOpacity={0.7} accessibilityLabel="Open cart" onPress={() => { if (open) closeSidebar(); navigate?.('Cart'); }}>
@@ -234,74 +301,134 @@ const Header = ({ navigate, setActive, goBack, showBackButton = false }) => {
       </View>
 
       <Modal visible={open} transparent animationType="none" onRequestClose={closeSidebar}>
+        <StatusBar backgroundColor="rgba(0,0,0,0.5)" barStyle="dark-content" />
         <Animated.View style={[styles.sidebarOverlay, { opacity: overlayOpacity }]}>
           <TouchableOpacity style={styles.overlayTouchable} activeOpacity={1} onPress={closeSidebar} />
         </Animated.View>
 
         <Animated.View style={[styles.sidebar, { width: sidebarWidth, transform: [{ translateX }] }]}>
-          <View style={styles.sidebarHeader}>
-            {isAuthenticated && user ? (
+          <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+            <View style={styles.sidebarHeader}>
               <View style={styles.userInfo}>
                 <View style={styles.avatar}>
-                  <User size={24} color="#3B82F6" />
+                  <User size={28} color="#2563EB" strokeWidth={2} />
                 </View>
-                <Text style={styles.userName}>{user.firstName} {user.lastName}</Text>
-                <Text style={styles.userEmail}>{user.email}</Text>
+                {/* Unified header: shows user info or a professional fallback */}
+                <Text style={styles.userName}>{user ? `${user.firstName} ${user.lastName}` : 'Welcome'}</Text>
+                <Text style={styles.userEmail}>{user ? user.email : 'Sign in to access your account'}</Text>
               </View>
-            ) : (
-              <Text style={styles.sidebarTitle}>Menu</Text>
-            )}
-          </View>
+            </View>
 
-          <TouchableOpacity style={styles.sidebarItem} onPress={() => { handleSelect('Home'); closeSidebar(); }}>
-            <Home size={18} color="#111" />
-            <Text style={styles.sidebarText}>Home</Text>
-          </TouchableOpacity>
+            <Animated.View 
+              style={{
+                opacity: menuItemsOpacity,
+                transform: [{ translateY: menuItemsTranslateY }]
+              }}
+            >
+              <View style={styles.menuSection}>
+                <TouchableOpacity 
+                  style={styles.sidebarItem} 
+                  onPress={() => { handleSelect('Home'); closeSidebar(); }}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.iconContainer}>
+                    <Home size={20} color="#2563EB" strokeWidth={2} />
+                  </View>
+                  <Text style={styles.sidebarText}>Home</Text>
+                </TouchableOpacity>
 
-          <TouchableOpacity style={styles.sidebarItem} onPress={() => { handleSelect('Categories'); closeSidebar(); }}>
-            <List size={18} color="#111" />
-            <Text style={styles.sidebarText}>Categories</Text>
-          </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.sidebarItem} 
+                  onPress={() => { handleSelect('Categories'); closeSidebar(); }}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.iconContainer}>
+                    <List size={20} color="#2563EB" strokeWidth={2} />
+                  </View>
+                  <Text style={styles.sidebarText}>Categories</Text>
+                </TouchableOpacity>
 
-          <TouchableOpacity style={styles.sidebarItem} onPress={() => { handleSelect('Deals'); closeSidebar(); }}>
-            <Gift size={18} color="#111" />
-            <Text style={styles.sidebarText}>Deals</Text>
-          </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.sidebarItem} 
+                  onPress={() => { handleSelect('Deals'); closeSidebar(); }}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.iconContainer}>
+                    <Gift size={20} color="#2563EB" strokeWidth={2} />
+                  </View>
+                  <Text style={styles.sidebarText}>Deals & Offers</Text>
+                </TouchableOpacity>
 
-          <TouchableOpacity style={styles.sidebarItem} onPress={() => { handleSelect('NewArrival'); closeSidebar(); }}>
-            <Gift size={18} color="#111" />
-            <Text style={styles.sidebarText}>New Arrival</Text>
-          </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.sidebarItem} 
+                  onPress={() => { handleSelect('NewArrival'); closeSidebar(); }}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.iconContainer}>
+                    <TrendingUp size={20} color="#2563EB" strokeWidth={2} />
+                  </View>
+                  <Text style={styles.sidebarText}>New Arrivals</Text>
+                </TouchableOpacity>
 
-          <TouchableOpacity style={styles.sidebarItem} onPress={() => { handleSelect('WishList'); closeSidebar(); }}>
-            <HeartIcon size={18} color="#111" />
-            <Text style={styles.sidebarText}>WishList</Text>
-          </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.sidebarItem} 
+                  onPress={() => { handleSelect('WishList'); closeSidebar(); }}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.iconContainer}>
+                    <HeartIcon size={20} color="#2563EB" strokeWidth={2} />
+                  </View>
+                  <Text style={styles.sidebarText}>Wishlist</Text>
+                </TouchableOpacity>
 
-          {isAuthenticated && (
-            <TouchableOpacity style={styles.sidebarItem} onPress={() => { navigate?.('MyOrders'); closeSidebar(); }}>
-              <ShoppingBag size={18} color="#111" />
-              <Text style={styles.sidebarText}>My Orders</Text>
-            </TouchableOpacity>
-          )}
+                {isAuthenticated && (
+                  <TouchableOpacity 
+                    style={styles.sidebarItem} 
+                    onPress={() => { navigate?.('MyOrders'); closeSidebar(); }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.iconContainer}>
+                      <ShoppingBag size={20} color="#2563EB" strokeWidth={2} />
+                    </View>
+                    <Text style={styles.sidebarText}>My Orders</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
 
-          {isAuthenticated ? (
-            <TouchableOpacity style={[styles.sidebarItem, styles.logoutItem]} onPress={handleLogout}>
-              <LogOut size={18} color="#EF4444" />
-              <Text style={[styles.sidebarText, styles.logoutText]}>Logout</Text>
-            </TouchableOpacity>
-          ) : (
-            <>
-              <TouchableOpacity style={[styles.sidebarItem, styles.sidebarLast]} onPress={() => { navigate?.('SignIn'); closeSidebar(); }}>
-                <User size={18} color="#3B82F6" />
-                <Text style={[styles.sidebarText, { color: '#3B82F6', fontWeight: '600' }]}>Sign In</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.sidebarItem} onPress={() => { navigate?.('SignUp'); closeSidebar(); }}>
-                <User size={18} color="#10B981" />
-                <Text style={[styles.sidebarText, { color: '#10B981', fontWeight: '600' }]}>Sign Up</Text>
-              </TouchableOpacity>
-            </>
-          )}
+              <View style={styles.divider} />
+
+              {isAuthenticated ? (
+                <TouchableOpacity 
+                  style={[styles.sidebarItem, styles.logoutItem]} 
+                  onPress={handleLogout}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.iconContainer, styles.logoutIconContainer]}>
+                    <LogOut size={20} color="#DC2626" strokeWidth={2} />
+                  </View>
+                  <Text style={[styles.sidebarText, styles.logoutText]}>Logout</Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.authButtons}>
+                  <TouchableOpacity 
+                    style={styles.signInBtn} 
+                    onPress={() => { navigate?.('SignIn'); closeSidebar(); }}
+                    activeOpacity={0.8}
+                  >
+                    <User size={18} color="#fff" strokeWidth={2.5} />
+                    <Text style={styles.signInText}>Sign In</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.signUpBtn} 
+                    onPress={() => { navigate?.('SignUp'); closeSidebar(); }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.signUpText}>Create Account</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </Animated.View>
+          </ScrollView>
         </Animated.View>
       </Modal>
     </View>
@@ -376,6 +503,23 @@ const styles = StyleSheet.create({
   iconBtn: {
     padding: 8,
     marginLeft: 8,
+    position: 'relative',
+  },
+  wishlistBadge: {
+    position: 'absolute',
+    right: 0,
+    top: -2,
+    backgroundColor: '#EF4444',
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  wishlistBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
   },
   icon: {
     fontSize: 18,
@@ -404,86 +548,163 @@ const styles = StyleSheet.create({
   /* Sidebar overlay and panel */
   sidebarOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#000', // dark overlay (not white)
+    backgroundColor: '#000',
     zIndex: 999,
   },
   sidebar: {
     position: 'absolute',
     left: 0,
-    // reduce height by adding vertical inset so sidebar doesn't fill full screen
-    top: 40,
-    bottom: 40,
-    backgroundColor: '#fff',
-    paddingTop: Platform.OS === 'ios' ? 20 : 16,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    overflow: 'hidden',
+    top: 0,
+    bottom: 0,
+    backgroundColor: '#FFFFFF',
+    paddingTop: Platform.OS === 'ios' ? 50 : 40,
     zIndex: 1001,
     shadowColor: '#000',
     shadowOffset: { width: 2, height: 0 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 12,
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 10,
+    overflow: 'hidden',
   },
   overlayTouchable: {
     flex: 1,
   },
   sidebarHeader: {
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    marginBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    marginBottom: 6,
+    borderBottomColor: '#F1F5F9',
+  },
+  menuHeaderContainer: {
+    paddingVertical: 4,
   },
   sidebarTitle: {
-    fontSize: 16,
+    fontSize: 24,
     fontWeight: '700',
+    color: '#1E293B',
+    letterSpacing: -0.5,
+  },
+  sidebarSubtitle: {
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 4,
+    fontWeight: '500',
   },
   userInfo: {
     alignItems: 'center',
     paddingVertical: 8,
   },
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: '#EFF6FF',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
+    borderWidth: 2,
+    borderColor: '#DBEAFE',
   },
   userName: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
-    color: '#111827',
+    color: '#1E293B',
     marginBottom: 4,
   },
   userEmail: {
-    fontSize: 12,
-    color: '#6B7280',
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  menuSection: {
+    paddingTop: 12,
   },
   sidebarItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 14,
-    gap: 12,
+    paddingHorizontal: 20,
+    marginHorizontal: 8,
+    borderRadius: 10,
+    marginBottom: 4,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
   },
   sidebarText: {
-    marginLeft: 12,
+    flex: 1,
     fontSize: 15,
-    color: '#111827',
+    color: '#334155',
+    fontWeight: '600',
+    letterSpacing: 0,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginVertical: 16,
+    marginHorizontal: 20,
+  },
+  logoutItem: {
+    marginTop: 4,
+  },
+  logoutIconContainer: {
+    backgroundColor: '#FEE2E2',
+  },
+  logoutText: {
+    color: '#DC2626',
+    fontWeight: '600',
+  },
+  authButtons: {
+    paddingHorizontal: 20,
+    gap: 12,
+    marginTop: 8,
+    paddingBottom: 20,
+  },
+  signInBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2563EB',
+    paddingVertical: 14,
+    borderRadius: 10,
+    gap: 8,
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  signInText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  signUpBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    paddingVertical: 14,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+  },
+  signUpText: {
+    color: '#475569',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   sidebarLast: {
     marginTop: 8,
-  },
-  logoutItem: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-  },
-  logoutText: {
-    color: '#EF4444',
-    fontWeight: '600',
   },
 });
 

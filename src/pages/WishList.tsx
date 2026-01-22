@@ -9,9 +9,13 @@ import {
   Dimensions,
   SafeAreaView,
   ActivityIndicator,
+  Alert,
+  ScrollView,
+  Pressable,
 } from 'react-native';
 import { Heart } from 'lucide-react-native';
 import { guestWishlistUtils } from '../utils/wishlistUtils';
+import { guestCartUtils } from '../utils/cartUtils';
 
 const { width } = Dimensions.get('window');
 
@@ -51,22 +55,49 @@ const WishList = ({ navigate, goBack }: { navigate?: (name: string, params?: any
     await loadWishlist();
   };
 
+  const handleAddToCart = async (product: any) => {
+    try {
+      // Add to guest cart (default quantity 1)
+      await guestCartUtils.addItem(product, 1);
+
+      // Keep the item in the wishlist (do not remove)
+      // Provide a confirmation and allow user to view cart
+      Alert.alert('Added to cart', 'Product has been added to your cart.', [
+        { text: 'Continue', style: 'cancel' },
+        { text: 'View cart', onPress: () => navigate?.('Cart') }
+      ]);
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+      Alert.alert('Error', 'Could not add item to cart');
+    }
+  };
+
   const renderItem = ({ item }: { item: any }) => (
-    <TouchableOpacity style={styles.card} activeOpacity={0.9} onPress={() => navigate?.('ProductDetails', { product: item })}>
-      <View style={styles.imageWrap}>
-        <Image source={typeof item.image === 'string' ? { uri: item.image } : item.image} style={styles.productImage} />
-        <View style={styles.heartWrap}>
-          <TouchableOpacity style={styles.heartBadge} onPress={() => handleRemoveItem(item.id)}>
-            <Heart color="#EF4444" size={16} fill="#EF4444" />
+    <View style={styles.cardAlt}>
+      <Pressable style={styles.imageContainer} onPress={() => navigate?.('ProductDetails', { product: item })}>
+        <Image source={typeof item.image === 'string' ? { uri: item.image } : item.image} style={styles.productImageAlt} />
+        <View style={styles.priceBadge}>
+          <Text style={styles.priceBadgeText}>₹{item.price}</Text>
+        </View>
+        <TouchableOpacity style={styles.heartBadgeAlt} onPress={() => handleRemoveItem(item.id)}>
+          <Heart color="#EF4444" size={18} fill="#EF4444" />
+        </TouchableOpacity>
+      </Pressable>
+
+      <View style={styles.cardBodyAlt}>
+        <Text style={styles.titleAlt} numberOfLines={2}>{item.title}</Text>
+        <View style={styles.rowBetween}>
+          <Text style={styles.priceAlt}>₹{item.price}</Text>
+          <TouchableOpacity style={styles.viewBtn} onPress={() => navigate?.('ProductDetails', { product: item })}>
+            <Text style={styles.viewBtnText}>View</Text>
           </TouchableOpacity>
         </View>
-      </View>
 
-      <View style={styles.cardBody}>
-        <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
-        <Text style={styles.price}>{item.price}</Text>
+        <TouchableOpacity style={styles.addToCartBtnAlt} activeOpacity={0.9} onPress={() => handleAddToCart(item)}>
+          <Text style={styles.addToCartTextAlt}>Add to cart</Text>
+        </TouchableOpacity>
       </View>
-    </TouchableOpacity>
+    </View>
   );
 
   return (
@@ -76,19 +107,26 @@ const WishList = ({ navigate, goBack }: { navigate?: (name: string, params?: any
           <ActivityIndicator size="large" color="#EF4444" />
         </View>
       ) : (
-        <FlatList
-        data={items}
-        keyExtractor={(i) => i.id}
-        numColumns={NUM_COLUMNS}
-        contentContainerStyle={styles.list}
-        showsVerticalScrollIndicator={false}
-        renderItem={renderItem}
-        ListEmptyComponent={() => (
-          <View style={styles.emptyWrap}>
-            <Text style={styles.emptyText}>Your wishlist is empty.</Text>
+        <View style={{ flex: 1 }}>
+          <View style={styles.fancyHeader}>
+            <Text style={styles.fancyTitle}>Saved for later</Text>
+            <Text style={styles.fancySubtitle}>Hand-picked items you love</Text>
           </View>
-        )}
-      />
+
+          <FlatList
+            data={items}
+            keyExtractor={(i) => i.id}
+            numColumns={1}
+            contentContainerStyle={styles.listAlt}
+            showsVerticalScrollIndicator={false}
+            renderItem={renderItem}
+            ListEmptyComponent={() => (
+              <View style={styles.emptyWrap}>
+                <Text style={styles.emptyText}>Your wishlist is empty.</Text>
+              </View>
+            )}
+          />
+        </View>
       )}
     </SafeAreaView>
   );
@@ -138,6 +176,27 @@ const styles = StyleSheet.create({
   list: {
     padding: CARD_MARGIN,
   },
+  listAlt: { paddingVertical: 12, paddingHorizontal: 12 },
+  fancyHeader: { paddingHorizontal: 12, paddingTop: 18, paddingBottom: 8, backgroundColor: '#fff' },
+  fancyTitle: { fontSize: 20, fontWeight: '800', color: '#111827' },
+  fancySubtitle: { fontSize: 12, color: '#6B7280', marginTop: 4, marginBottom: 10 },
+
+
+  /* Alt card */
+  cardAlt: { backgroundColor: '#fff', marginBottom: 12, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: '#F1F5F9', flexDirection: 'row' },
+  imageContainer: { width: 140, height: 140, backgroundColor: '#F3F4F6', position: 'relative' },
+  productImageAlt: { width: '100%', height: '100%', resizeMode: 'cover' },
+  priceBadge: { position: 'absolute', top: 10, left: 10, backgroundColor: '#111827', paddingHorizontal: 8, paddingVertical: 6, borderRadius: 8 },
+  priceBadgeText: { color: '#fff', fontWeight: '700' },
+  heartBadgeAlt: { position: 'absolute', top: 10, right: 10, backgroundColor: '#fff', width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.06, shadowOffset: { width: 0, height: 1 }, shadowRadius: 6, elevation: 4 },
+  cardBodyAlt: { flex: 1, padding: 12, justifyContent: 'center' },
+  titleAlt: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 6 },
+  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  priceAlt: { fontSize: 16, fontWeight: '700', color: '#111827' },
+  viewBtn: { backgroundColor: '#F1F5F9', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
+  viewBtnText: { color: '#475569', fontWeight: '700' },
+  addToCartBtnAlt: { marginTop: 10, backgroundColor: '#e0555a', paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
+  addToCartTextAlt: { color: '#fff', fontWeight: '800' },
   card: {
     width: CARD_WIDTH,
     marginLeft: CARD_MARGIN,
@@ -197,6 +256,18 @@ const styles = StyleSheet.create({
   emptyText: {
     color: '#6b7280',
   },
+  addToCartBtn: {
+    marginTop: 8,
+    backgroundColor: '#e0555a',
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  addToCartText: {
+    color: '#fff',
+    fontWeight: '700'
+  }
 });
 
 export default WishList;

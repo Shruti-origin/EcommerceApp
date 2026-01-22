@@ -172,8 +172,22 @@ export const productService = {
     return response;
   },
   getFeatured: async (limit?: number) => {
-    const response = await apiClient.get(`/products/featured`, { params: { limit } });
-    return response;
+    try {
+      // Prefer dedicated featured endpoint if available
+      const response = await apiClient.get(`/products/featured`, { params: { limit } });
+      return response;
+    } catch (e: any) {
+      console.warn('[productService.getFeatured] featured endpoint failed, trying products list fallback', e.message || e);
+      try {
+        // Fallback to general products endpoint
+        const fallback = await apiClient.get('/products', { params: { limit } });
+        return fallback;
+      } catch (err: any) {
+        // If fallback also fails (e.g., requires auth), return empty list so UI can render gracefully
+        console.warn('[productService.getFeatured] products fallback failed, returning empty array', err.message || err);
+        return [];
+      }
+    }
   },
   getFiltered: async (filters: any) => {
     const response = await apiClient.get('/products/filter', { params: filters });

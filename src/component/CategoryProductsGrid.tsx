@@ -283,7 +283,7 @@ const CategoryProductsGrid: React.FC<{ title?: string; items?: ProductItem[]; ca
     <View style={styles.section}>
       <View style={styles.headerRow}>
         <Text style={styles.heading}>{categoryTitle}</Text>
-        <TouchableOpacity activeOpacity={0.7} onPress={() => console.log('see more', categoryTitle)} style={styles.seeMoreBtn}>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => navigate?.('CategoryProducts', { categoryId, title: categoryTitle, items: categoryProducts })} style={styles.seeMoreBtn}>
           <Text style={styles.seeMore}>See More</Text>
           <Text style={styles.seeMoreArrow}>›</Text>
         </TouchableOpacity>

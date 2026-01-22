@@ -14,7 +14,7 @@ const TABS = [
   { key: 'Categories', Icon: List },
   { key: 'Video', Icon: Video },
   { key: 'Search', Icon: Search },
-  { key: 'Setting', Icon: Settings },
+  { key: 'Settings', Icon: Settings },
 ];
 
 export default function BottomNav({ initial = 'Home', active: controlledActive, onChange }) {
