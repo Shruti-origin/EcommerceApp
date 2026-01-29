@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, FlatList, useWindowDimensions, Modal, Pressable } from 'react-native';
-
+import { useTranslation } from 'react-i18next';
 import { ArrowRight, ArrowUpDown, ChevronDown, Funnel, List, Calendar, Heart } from 'lucide-react-native';
 import { guestWishlistUtils } from '../utils/wishlistUtils';
 
@@ -13,6 +13,7 @@ const defaultItemsGhagra = [
 ];
 
 const Deals = ({ navigate }: { navigate?: (screen: string, params?: any) => void }) => {
+  const { t } = useTranslation();
   const { width } = useWindowDimensions();
 //   const insets = useSafeAreaInsets();
   const padding = 0;

@@ -11,6 +11,7 @@ import {
   FlatList,
   Alert
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { orderService } from '../services/api';
 
@@ -29,6 +30,7 @@ interface Order {
 }
 
 const MyOrders = ({ navigate, goBack }: { navigate?: (name: string, params?: any) => void; goBack?: () => void }) => {
+  const { t } = useTranslation();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -121,10 +123,10 @@ const MyOrders = ({ navigate, goBack }: { navigate?: (name: string, params?: any
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.emptyCard}>
             <Text style={styles.emptyIcon}>🔒</Text>
-            <Text style={styles.emptyTitle}>Sign in to view orders</Text>
-            <Text style={styles.emptySubtitle}>Please sign in to access your order history</Text>
+            <Text style={styles.emptyTitle}>{t('myOrders.signInRequired')}</Text>
+            <Text style={styles.emptySubtitle}>{t('myOrders.signInRequired')}</Text>
             <TouchableOpacity style={styles.primaryBtn} onPress={() => navigate?.('SignIn')}>
-              <Text style={styles.primaryBtnText}>Sign In</Text>
+              <Text style={styles.primaryBtnText}>{t('signIn.signInButton')}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -137,15 +139,15 @@ const MyOrders = ({ navigate, goBack }: { navigate?: (name: string, params?: any
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>My Orders</Text>
-            <Text style={styles.headerSubtitle}>Track and manage your orders</Text>
+            <Text style={styles.headerTitle}>{t('myOrders.title')}</Text>
+            <Text style={styles.headerSubtitle}>{t('myOrders.title')}</Text>
           </View>
           <View style={styles.emptyCard}>
             <Text style={styles.emptyIcon}>📦</Text>
-            <Text style={styles.emptyTitle}>No orders yet</Text>
-            <Text style={styles.emptySubtitle}>Start shopping to see your orders here</Text>
+            <Text style={styles.emptyTitle}>{t('myOrders.emptyOrders')}</Text>
+            <Text style={styles.emptySubtitle}>{t('myOrders.startShopping')}</Text>
             <TouchableOpacity style={styles.primaryBtn} onPress={() => navigate?.('Categories')}>
-              <Text style={styles.primaryBtnText}>Start Shopping</Text>
+              <Text style={styles.primaryBtnText}>{t('myOrders.startShopping')}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -162,7 +164,7 @@ const MyOrders = ({ navigate, goBack }: { navigate?: (name: string, params?: any
         <View style={styles.orderHeader}>
           <View style={styles.orderHeaderLeft}>
             <View style={styles.orderTitleRow}>
-              <Text style={styles.orderNumber}>Order #{order.orderNumber}</Text>
+              <Text style={styles.orderNumber}>{t('myOrders.orderNumber')}{order.orderNumber}</Text>
               <View style={[styles.statusBadge, { backgroundColor: statusColors.bg }]}>
                 <Text style={[styles.statusText, { color: statusColors.text }]}>
                   {getStatusIcon(order.status)} {order.status.toUpperCase()}
@@ -170,7 +172,7 @@ const MyOrders = ({ navigate, goBack }: { navigate?: (name: string, params?: any
               </View>
             </View>
             <Text style={styles.orderDate}>
-              Placed on {new Date(order.createdAt).toLocaleDateString('en-US', {
+              {t('myOrders.placedOn')} {new Date(order.createdAt).toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
@@ -178,7 +180,7 @@ const MyOrders = ({ navigate, goBack }: { navigate?: (name: string, params?: any
             </Text>
           </View>
           <View style={styles.orderHeaderRight}>
-            <Text style={styles.orderTotalLabel}>Total Amount</Text>
+            <Text style={styles.orderTotalLabel}>{t('myOrders.total')}</Text>
             <Text style={styles.totalAmount}>₹{Number(order.totalAmount || 0).toFixed(2)}</Text>
           </View>
         </View>
@@ -187,7 +189,7 @@ const MyOrders = ({ navigate, goBack }: { navigate?: (name: string, params?: any
         {order.items && order.items.length > 0 && (
           <View style={styles.itemsSummary}>
             <Text style={styles.itemsCount}>
-              {order.items.length} item{order.items.length > 1 ? 's' : ''}
+              {order.items.length} {t('myOrders.items').toLowerCase()}
             </Text>
           </View>
         )}
@@ -195,7 +197,7 @@ const MyOrders = ({ navigate, goBack }: { navigate?: (name: string, params?: any
         {/* Order Details */}
         <View style={styles.orderDetails}>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Payment Status</Text>
+            <Text style={styles.detailLabel}>{t('myOrders.paymentStatus')}</Text>
             <Text style={[
               styles.detailValue,
               { color: order.paymentStatus === 'paid' ? '#059669' : '#D97706' }
@@ -204,7 +206,7 @@ const MyOrders = ({ navigate, goBack }: { navigate?: (name: string, params?: any
             </Text>
           </View>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Subtotal</Text>
+            <Text style={styles.detailLabel}>{t('myOrders.subtotal')}</Text>
             <Text style={styles.detailValue}>₹{Number(order.totalAmount || 0).toFixed(2)}</Text>
           </View>
         </View>
@@ -215,7 +217,7 @@ const MyOrders = ({ navigate, goBack }: { navigate?: (name: string, params?: any
             style={styles.viewDetailsBtn} 
             onPress={() => setSelectedOrder(order)}
           >
-            <Text style={styles.viewDetailsBtnText}>View Details</Text>
+            <Text style={styles.viewDetailsBtnText}>{t('myOrders.viewDetails')}</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.trackBtn}
@@ -231,8 +233,8 @@ const MyOrders = ({ navigate, goBack }: { navigate?: (name: string, params?: any
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Orders</Text>
-        <Text style={styles.headerSubtitle}>Track and manage your orders</Text>
+        <Text style={styles.headerTitle}>{t('myOrders.title')}</Text>
+        <Text style={styles.headerSubtitle}>{t('myOrders.title')}</Text>
       </View>
 
       <FlatList
@@ -253,7 +255,7 @@ const MyOrders = ({ navigate, goBack }: { navigate?: (name: string, params?: any
           <View style={styles.modalContent}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Order Details</Text>
+                <Text style={styles.modalTitle}>{t('myOrders.orderDetails')}</Text>
                 <TouchableOpacity onPress={() => setSelectedOrder(null)}>
                   <Text style={styles.modalClose}>✕</Text>
                 </TouchableOpacity>
@@ -263,18 +265,18 @@ const MyOrders = ({ navigate, goBack }: { navigate?: (name: string, params?: any
                 <View style={styles.modalBody}>
                   {/* Order Info */}
                   <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Order Information</Text>
+                    <Text style={styles.sectionTitle}>{t('myOrders.orderDetails')}</Text>
                     <View style={styles.infoCard}>
                       <Text style={styles.infoText}>
-                        <Text style={styles.infoLabel}>Order Number: </Text>
+                        <Text style={styles.infoLabel}>{t('myOrders.orderNumber')} </Text>
                         {selectedOrder.orderNumber}
                       </Text>
                       <Text style={styles.infoText}>
-                        <Text style={styles.infoLabel}>Date: </Text>
+                        <Text style={styles.infoLabel}>{t('myOrders.placedOn')}: </Text>
                         {new Date(selectedOrder.createdAt).toLocaleString()}
                       </Text>
                       <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>Status: </Text>
+                        <Text style={styles.infoLabel}>{t('myOrders.status')}: </Text>
                         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(selectedOrder.status).bg }]}>
                           <Text style={[styles.statusText, { color: getStatusColor(selectedOrder.status).text }]}>
                             {selectedOrder.status.toUpperCase()}
@@ -282,7 +284,7 @@ const MyOrders = ({ navigate, goBack }: { navigate?: (name: string, params?: any
                         </View>
                       </View>
                       <Text style={styles.infoText}>
-                        <Text style={styles.infoLabel}>Payment: </Text>
+                        <Text style={styles.infoLabel}>{t('myOrders.paymentStatus')}: </Text>
                         {selectedOrder.paymentStatus.toUpperCase()}
                       </Text>
                     </View>
@@ -291,7 +293,7 @@ const MyOrders = ({ navigate, goBack }: { navigate?: (name: string, params?: any
                   {/* Shipping Address */}
                   {selectedOrder.shippingAddress && (
                     <View style={styles.section}>
-                      <Text style={styles.sectionTitle}>Shipping Address</Text>
+                      <Text style={styles.sectionTitle}>{t('myOrders.shippingAddress')}</Text>
                       <View style={styles.infoCard}>
                         <Text style={styles.addressName}>
                           {selectedOrder.shippingAddress.firstName} {selectedOrder.shippingAddress.lastName}
@@ -312,14 +314,14 @@ const MyOrders = ({ navigate, goBack }: { navigate?: (name: string, params?: any
 
                   {/* Price Breakdown */}
                   <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Price Details</Text>
+                    <Text style={styles.sectionTitle}>{t('myOrders.orderDetails')}</Text>
                     <View style={styles.infoCard}>
                       <View style={styles.priceRow}>
-                        <Text style={styles.priceLabel}>Subtotal</Text>
+                        <Text style={styles.priceLabel}>{t('myOrders.subtotal')}</Text>
                         <Text style={styles.priceValue}>₹{Number(selectedOrder.totalAmount || 0).toFixed(2)}</Text>
                       </View>
                       <View style={[styles.priceRow, styles.totalRow]}>
-                        <Text style={styles.totalLabel}>Total</Text>
+                        <Text style={styles.totalLabel}>{t('myOrders.total')}</Text>
                         <Text style={styles.totalValue}>₹{Number(selectedOrder.totalAmount || 0).toFixed(2)}</Text>
                       </View>
                     </View>
@@ -331,7 +333,7 @@ const MyOrders = ({ navigate, goBack }: { navigate?: (name: string, params?: any
                 style={styles.modalCloseBtn} 
                 onPress={() => setSelectedOrder(null)}
               >
-                <Text style={styles.modalCloseBtnText}>Close</Text>
+                <Text style={styles.modalCloseBtnText}>{t('myOrders.close')}</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>

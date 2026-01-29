@@ -25,7 +25,7 @@ const Home = ({ navigate }: { navigate?: (screen: string, params?: any) => void 
       <BestSelling navigate={navigate} />
 
       {/* Scrolling brand section */}
-      <ScrollingSectionNative />
+      <ScrollingSectionNative navigate={navigate} />
 
        {/* Offset Printing Section */}
     {/*  */}

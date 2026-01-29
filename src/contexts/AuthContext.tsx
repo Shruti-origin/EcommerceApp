@@ -5,11 +5,105 @@ import apiClient from '../services/apiClient';
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials, role?: UserRole) => Promise<void>;
-  logout: () => void;
-  updateUser: (user: User) => void;
+  logout: () => Promise<void>;
+  updateUser: (user: User) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Lightweight cross-platform event bus
+// - On platforms where globalThis.addEventListener/dispatchEvent exist (web), it delegates to them
+// - On platforms like React Native, it falls back to a Map-based in-memory pub/sub
+const eventBus = (() => {
+  if (typeof globalThis !== 'undefined' && typeof (globalThis as any).addEventListener === 'function' && typeof (globalThis as any).dispatchEvent === 'function') {
+    return {
+      add: (name: string, handler: any) => (globalThis as any).addEventListener(name, handler),
+      remove: (name: string, handler: any) => (globalThis as any).removeEventListener(name, handler),
+      dispatch: (name: string, detail?: any) => {
+        try {
+          const CE = (globalThis as any).CustomEvent;
+          if (CE) (globalThis as any).dispatchEvent(new CE(name, { detail }));
+          else (globalThis as any).dispatchEvent({ type: name, detail });
+        } catch (e) {
+          // ignore dispatch errors
+        }
+      },
+    };
+  }
+
+  const map: Map<string, Set<Function>> = (globalThis as any).__appEventMap || new Map();
+  (globalThis as any).__appEventMap = map;
+  return {
+    add: (name: string, handler: Function) => {
+      const s = map.get(name) || new Set<Function>();
+      s.add(handler);
+      map.set(name, s);
+    },
+    remove: (name: string, handler: Function) => {
+      const s = map.get(name);
+      if (s) {
+        s.delete(handler);
+        if (s.size === 0) map.delete(name);
+      }
+    },
+    dispatch: (name: string, detail?: any) => {
+      const s = map.get(name);
+      if (s) {
+        for (const h of Array.from(s)) {
+          try {
+            h({ detail });
+          } catch (e) {
+            console.warn('Event handler error for', name, e);
+          }
+        }
+      }
+    },
+  };
+})();
+
+// Storage abstraction: tries `localStorage` first (web), falls back to AsyncStorage (React Native)
+const storage = {
+  getItem: async (k: string) => {
+    if (typeof (globalThis as any).localStorage !== 'undefined') return (globalThis as any).localStorage.getItem(k);
+    try {
+      const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+      return await AsyncStorage.getItem(k);
+    } catch (e) {
+      return null;
+    }
+  },
+  setItem: async (k: string, v: string) => {
+    if (typeof (globalThis as any).localStorage !== 'undefined') return (globalThis as any).localStorage.setItem(k, v);
+    try {
+      const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+      return await AsyncStorage.setItem(k, v);
+    } catch (e) {
+      return undefined;
+    }
+  },
+  removeItem: async (k: string) => {
+    if (typeof (globalThis as any).localStorage !== 'undefined') return (globalThis as any).localStorage.removeItem(k);
+    try {
+      const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+      return await AsyncStorage.removeItem(k);
+    } catch (e) {
+      return undefined;
+    }
+  },
+};
+
+// Safe base64 decode helper for token payloads
+const decodeBase64 = (s: string) => {
+  if (!s) return '';
+  try {
+    if (typeof (globalThis as any).atob === 'function') return (globalThis as any).atob(s);
+  } catch (e) {}
+  try {
+    const Buf = (globalThis as any).Buffer;
+    if (Buf && typeof Buf.from === 'function') return Buf.from(s, 'base64').toString('utf8');
+  } catch (e) {}
+  return '';
+};
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   console.log('🔄 AuthProvider initializing...');
@@ -27,8 +121,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     const loadUser = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const userStr = localStorage.getItem('user');
+        const token = await storage.getItem('token');
+        const userStr = await storage.getItem('user');
         
         console.log('🔍 Loading stored auth data:', { hasToken: !!token, hasUser: !!userStr });
 
@@ -37,20 +131,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           try {
             const tokenParts = token.split('.');
             if (tokenParts.length === 3) {
-              const payload = JSON.parse(atob(tokenParts[1]));
-              const expirationTime = payload.exp * 1000; // Convert to milliseconds
+              const payloadStr = decodeBase64(tokenParts[1]);
+              const payload = payloadStr ? JSON.parse(payloadStr) : null;
+              const expirationTime = payload?.exp ? payload.exp * 1000 : 0; // Convert to milliseconds
               
               // Add 5 minutes buffer to avoid premature deletion
               const bufferTime = 5 * 60 * 1000; // 5 minutes in milliseconds
               
-              if (Date.now() >= (expirationTime + bufferTime)) {
+              if (expirationTime && Date.now() >= (expirationTime + bufferTime)) {
                 console.warn('⚠️ Token expired on load, clearing auth data...');
-                localStorage.removeItem('token');
-                localStorage.removeItem('authToken');
-                localStorage.removeItem('user');
+                await storage.removeItem('token');
+                await storage.removeItem('authToken');
+                await storage.removeItem('user');
                 setAuthState((prev) => ({ ...prev, isLoading: false }));
                 return;
-              } else if (Date.now() >= expirationTime) {
+              } else if (expirationTime && Date.now() >= expirationTime) {
                 console.warn('⚠️ Token will expire soon but still valid...');
               }
             }
@@ -58,7 +153,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             console.warn('Could not parse token for expiration check:', e);
           }
 
-          const user = JSON.parse(userStr);
+          const user = JSON.parse(userStr as string);
           setAuthState({
             user,
             token,
@@ -89,9 +184,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
     };
 
-    globalThis.addEventListener('tokenExpired', handleTokenExpired);
+    eventBus.add('tokenExpired', handleTokenExpired);
     return () => {
-      globalThis.removeEventListener('tokenExpired', handleTokenExpired);
+      eventBus.remove('tokenExpired', handleTokenExpired);
     };
   }, []);
 
@@ -119,10 +214,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.log('✅ Extracted token:', authToken);
       console.log('✅ User data:', user);
       
-      // Store in localStorage (use both 'token' and 'authToken' for compatibility)
-      localStorage.setItem('token', authToken);
-      localStorage.setItem('authToken', authToken);
-      localStorage.setItem('user', JSON.stringify(user));
+      // Store token and user using storage abstraction
+      await storage.setItem('token', authToken);
+      await storage.setItem('authToken', authToken);
+      await storage.setItem('user', JSON.stringify(user));
 
       setAuthState({
         user,
@@ -132,9 +227,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
 
       // Dispatch login success event for cart sync
-      globalThis.dispatchEvent(new CustomEvent('loginSuccess', { 
-        detail: { token: authToken, user } 
-      }));
+      eventBus.dispatch('loginSuccess', { token: authToken, user });
 
       console.log('✅ Login successful, role:', user.role);
     } catch (error: any) {
@@ -143,12 +236,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     // Remove all authentication tokens
-    localStorage.removeItem('token');
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('userToken');
-    localStorage.removeItem('user');
+    await storage.removeItem('token');
+    await storage.removeItem('authToken');
+    await storage.removeItem('userToken');
+    await storage.removeItem('user');
     
     setAuthState({
       user: null,
@@ -161,14 +254,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Notify other parts of the app that logout happened
     try {
-      globalThis.dispatchEvent(new CustomEvent('logout'));
+      eventBus.dispatch('logout');
     } catch (e) {
       console.warn('Could not dispatch logout event', e);
     }
   };
 
-  const updateUser = (user: User) => {
-    localStorage.setItem('user', JSON.stringify(user));
+  const updateUser = async (user: User) => {
+    await storage.setItem('user', JSON.stringify(user));
     setAuthState((prev) => ({ ...prev, user }));
   };
 
@@ -189,7 +282,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (!context) {
-    console.error('useAuth called outside AuthProvider. Current location:', window.location.pathname);
+    console.error('useAuth called outside AuthProvider. Current location:', typeof (globalThis as any).window !== 'undefined' ? (globalThis as any).window.location?.pathname : 'unknown');
     console.error('Stack trace:', new Error().stack);
     throw new Error('useAuth must be used within an AuthProvider');
   }

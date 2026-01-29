@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, SafeAreaView, StatusBar, TextInput } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft } from 'lucide-react-native';
 import { productService } from '../services/api';
 
 const placeholder = require('../../assets/s-h1.png');
 
 const SearchResults = ({ query, navigate, goBack }: { query?: string; navigate?: (s: string, p?: any) => void; goBack?: () => void }) => {
+  const { t } = useTranslation();
   const [q, setQ] = useState<string>(query || '');
   const [loading, setLoading] = useState<boolean>(false);
   const [products, setProducts] = useState<any[]>([]);
@@ -26,7 +28,7 @@ const SearchResults = ({ query, navigate, goBack }: { query?: string; navigate?:
         setProducts(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error('Search failed', err);
-        setError('Failed to load results');
+        setError(t('search.error'));
         setProducts([]);
       } finally {
         setLoading(false);
@@ -65,7 +67,7 @@ const SearchResults = ({ query, navigate, goBack }: { query?: string; navigate?:
           value={q}
           onChangeText={setQ}
           onSubmitEditing={onSubmit}
-          placeholder="Search products..."
+          placeholder={t('search.placeholder')}
           style={styles.searchInput}
           returnKeyType="search"
         />
@@ -77,7 +79,7 @@ const SearchResults = ({ query, navigate, goBack }: { query?: string; navigate?:
         ) : error ? (
           <View style={styles.center}><Text>{error}</Text></View>
         ) : products.length === 0 ? (
-          <View style={styles.center}><Text>No results for "{q}"</Text></View>
+          <View style={styles.center}><Text>{t('search.noResults')} "{q}"</Text></View>
         ) : (
           <FlatList
             data={products}

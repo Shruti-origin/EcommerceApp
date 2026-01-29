@@ -13,6 +13,7 @@ import {
   ScrollView,
   Pressable,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Heart } from 'lucide-react-native';
 import { guestWishlistUtils } from '../utils/wishlistUtils';
 import { guestCartUtils } from '../utils/cartUtils';
@@ -31,6 +32,7 @@ const NUM_COLUMNS = 2;
 const CARD_WIDTH = Math.floor((width - (CARD_MARGIN * (NUM_COLUMNS + 1))) / NUM_COLUMNS);
 
 const WishList = ({ navigate, goBack }: { navigate?: (name: string, params?: any) => void; goBack?: () => void }) => {
+  const { t } = useTranslation();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -62,13 +64,13 @@ const WishList = ({ navigate, goBack }: { navigate?: (name: string, params?: any
 
       // Keep the item in the wishlist (do not remove)
       // Provide a confirmation and allow user to view cart
-      Alert.alert('Added to cart', 'Product has been added to your cart.', [
-        { text: 'Continue', style: 'cancel' },
-        { text: 'View cart', onPress: () => navigate?.('Cart') }
+      Alert.alert(t('wishlist.addedToCart'), t('wishlist.productAdded'), [
+        { text: t('wishlist.continue'), style: 'cancel' },
+        { text: t('wishlist.viewCart'), onPress: () => navigate?.('Cart') }
       ]);
     } catch (error) {
       console.error('Failed to add to cart:', error);
-      Alert.alert('Error', 'Could not add item to cart');
+      Alert.alert(t('common.error'), 'Could not add item to cart');
     }
   };
 
@@ -89,12 +91,12 @@ const WishList = ({ navigate, goBack }: { navigate?: (name: string, params?: any
         <View style={styles.rowBetween}>
           <Text style={styles.priceAlt}>₹{item.price}</Text>
           <TouchableOpacity style={styles.viewBtn} onPress={() => navigate?.('ProductDetails', { product: item })}>
-            <Text style={styles.viewBtnText}>View</Text>
+            <Text style={styles.viewBtnText}>{t('wishlist.view')}</Text>
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity style={styles.addToCartBtnAlt} activeOpacity={0.9} onPress={() => handleAddToCart(item)}>
-          <Text style={styles.addToCartTextAlt}>Add to cart</Text>
+          <Text style={styles.addToCartTextAlt}>{t('wishlist.addToCart')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -122,7 +124,7 @@ const WishList = ({ navigate, goBack }: { navigate?: (name: string, params?: any
             renderItem={renderItem}
             ListEmptyComponent={() => (
               <View style={styles.emptyWrap}>
-                <Text style={styles.emptyText}>Your wishlist is empty.</Text>
+                <Text style={styles.emptyText}>{t('wishlist.emptyWishlist')}</Text>
               </View>
             )}
           />

@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { SafeAreaView, View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { SafeAreaView, View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff } from 'lucide-react-native';
 import { authService } from '../services/api';
 import { guestCartUtils } from '../utils/cartUtils';
 
 const SignInNative = ({ navigate, goBack }: { navigate?: (name: string, params?: any) => void; goBack?: () => void }) => {
+  const { t } = useTranslation();
   const [emailOrPhone, setEmailOrPhone] = useState('');
   const [password, setPassword] = useState('');
   const [secure, setSecure] = useState(true);
@@ -14,7 +16,7 @@ const SignInNative = ({ navigate, goBack }: { navigate?: (name: string, params?:
 
   const handleSignIn = async () => {
     setError('');
-    if (!emailOrPhone || !password) return setError('Please enter both fields');
+    if (!emailOrPhone || !password) return setError(t('signIn.enterBothFields'));
     setLoading(true);
 
     try {
@@ -35,6 +37,8 @@ const SignInNative = ({ navigate, goBack }: { navigate?: (name: string, params?:
       await AsyncStorage.setItem('token', token);
       await AsyncStorage.setItem('authToken', token);
       await AsyncStorage.setItem('user', JSON.stringify(user));
+      // Optionally store password so profile settings can show it during development (not recommended for production).
+      try { await AsyncStorage.setItem('userPassword', password); } catch (e) {}
 
       // Optionally sync guest cart to user cart
       try {
@@ -55,11 +59,11 @@ const SignInNative = ({ navigate, goBack }: { navigate?: (name: string, params?:
         } catch (e) {}
       }
 
-      Alert.alert('Success', 'Signed in successfully');
+      Alert.alert(t('common.success'), t('signIn.success'));
       navigate?.('Home');
     } catch (err: any) {
       console.error('SignIn failed', err);
-      setError(err.message || 'Failed to sign in');
+      setError(err.message || t('signIn.failed'));
     } finally {
       setLoading(false);
     }
@@ -67,26 +71,37 @@ const SignInNative = ({ navigate, goBack }: { navigate?: (name: string, params?:
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.title}>Sign in</Text>
+      {/* Decorative leaves */}
+      <Image source={require('../../assets/bg-home.png')} style={styles.leafTop} />
+      <Image source={require('../../assets/bg-home.png')} style={styles.leafBottom} />
+
+      {/* Skip top-right */}
+      <View style={styles.topBar}>
+        <TouchableOpacity onPress={() => navigate?.('Hello')}>
+          <Text style={styles.skipText}>Skips</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.formWrap}>
+        <Text style={styles.titleBig}>Login</Text>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <TextInput
-          style={styles.input}
-          placeholder="Email or phone"
-          placeholderTextColor="#000"
+          style={styles.pillInput}
+          placeholder={t('signIn.emailOrPhone')}
+          placeholderTextColor="#9CA3AF"
           value={emailOrPhone}
           onChangeText={setEmailOrPhone}
           keyboardType="email-address"
           autoCapitalize="none"
         />
 
-        <View style={styles.passwordWrapper}>
+        <View style={styles.passwordRow}>
           <TextInput
-            style={[styles.input, styles.passwordInput]}
+            style={[styles.pillInput, styles.passwordInput]}
             placeholder="Password"
-            placeholderTextColor="#000"
+            placeholderTextColor="#9CA3AF"
             secureTextEntry={secure}
             value={password}
             onChangeText={setPassword}
@@ -105,16 +120,13 @@ const SignInNative = ({ navigate, goBack }: { navigate?: (name: string, params?:
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleSignIn} disabled={loading}>
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Continue</Text>}
+        <TouchableOpacity style={[styles.doneButton, loading && styles.buttonDisabled]} onPress={handleSignIn} disabled={loading}>
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.doneText}>Next</Text>}
         </TouchableOpacity>
 
-        <View style={styles.row}>
-          <Text>New here?</Text>
-          <TouchableOpacity onPress={() => navigate?.('SignUp')}>
-            <Text style={styles.link}> Create Account</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={styles.forgetRow} onPress={() => navigate?.('ForgetPassword')}>
+          <Text style={styles.forgetText}>Forget Password</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -122,17 +134,21 @@ const SignInNative = ({ navigate, goBack }: { navigate?: (name: string, params?:
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
-  card: { width: '92%', maxWidth: 520, backgroundColor: '#fff', padding: 20, borderRadius: 12, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, elevation: 6 },
-  title: { fontSize: 22, fontWeight: '700', textAlign: 'center', marginBottom: 12 },
-  input: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12, color: '#000' },
-  passwordWrapper: { position: 'relative' },
-  passwordInput: { paddingRight: 40 },
-  eyeButton: { position: 'absolute', right: 10, top: 12 },
-  button: { backgroundColor: '#e0555a', paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
+  leafTop: { position: 'absolute', top: -200, left: -170, width: 400, height: 400, opacity: 0.35, transform: [{ rotate: '-120deg' }] },
+  leafBottom: { position: 'absolute', bottom: -200, right: -130, width: 480, height: 480, opacity: 0.35, transform: [{ rotate: '85deg' }] },
+  topBar: { position: 'absolute', top: 18, right: 18 },
+  skipText: { color: '#000000' ,marginTop:15, marginRight:10},
+  formWrap: { width: '92%', maxWidth: 520, paddingHorizontal: 18, paddingTop: 30, alignItems: 'stretch' },
+  titleBig: { fontSize: 44, fontWeight: '700', textAlign: 'left', marginBottom: 20, color: '#111827' },
+  pillInput: { backgroundColor: '#F3F4F6', borderRadius: 28, paddingVertical: 12, paddingHorizontal: 16, marginBottom: 12, color: '#000' },
+  passwordRow: { position: 'relative' },
+  passwordInput: { paddingRight: 48 },
+  eyeButton: { position: 'absolute', right: 12, top: 12 },
+  doneButton: { backgroundColor: '#E84F30', paddingVertical: 14, borderRadius: 30, alignItems: 'center', marginTop: 6 },
+  doneText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   buttonDisabled: { backgroundColor: '#9CA3AF' },
-  buttonText: { color: '#fff', fontWeight: '700' },
-  row: { flexDirection: 'row', justifyContent: 'center', marginTop: 12 },
-  link: { color: '#3b82f6', fontWeight: '700' },
+  forgetRow: { alignItems: 'center', marginTop: 14 },
+  forgetText: { color: '#6B7280' },
   error: { color: '#ef4444', marginBottom: 8, textAlign: 'center' },
 });
 

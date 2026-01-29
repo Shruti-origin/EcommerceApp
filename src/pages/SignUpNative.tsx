@@ -1,11 +1,14 @@
 import React, { useState, useRef } from 'react';
-import { SafeAreaView, View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff } from 'lucide-react-native';
 import { authService } from '../services/api';
 import { guestCartUtils } from '../utils/cartUtils';
 
-const SignUpNative = ({ navigate, goBack }: { navigate?: (name: string, params?: any) => void; goBack?: () => void }) => {
+const SignUpNative: React.FC<{ navigate?: (name: string, params?: any) => void; goBack?: () => void }> = ({ navigate, goBack }) => {
+  const { t } = useTranslation();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -23,22 +26,21 @@ const SignUpNative = ({ navigate, goBack }: { navigate?: (name: string, params?:
     setError('');
     setSuccess('');
 
+    // Validate required name fields
+    if (!firstName.trim() || !lastName.trim()) {
+      setError('First name and last name are required');
+      return;
+    }
+
     // Validate phone contains exactly 10 digits
     if (!/^[0-9]{10}$/.test(phone)) {
-      setError('Phone number must be exactly 10 digits');
+      setError(t('signUp.phoneValidation'));
       return;
     }
 
     setLoading(true);
     try {
-      const payload = {
-        firstName,
-        lastName,
-        email,
-        phone,
-        password,
-        role: 'customer'
-      };
+      const payload: any = { firstName: firstName.trim(), lastName: lastName.trim(), email, phone, password, role: 'customer' };
 
       const res = await authService.register(payload);
 
@@ -52,8 +54,9 @@ const SignUpNative = ({ navigate, goBack }: { navigate?: (name: string, params?:
           await AsyncStorage.setItem('token', token);
           await AsyncStorage.setItem('authToken', token);
           await AsyncStorage.setItem('user', JSON.stringify(user));
+          // Optionally store password so profile settings can show it during development (not recommended for production).
+          try { await AsyncStorage.setItem('userPassword', password); } catch (e) {}
 
-          try { await guestCartUtils?.syncWithUserAccount?.(token); } catch (e) { console.warn('Cart sync failed', e); }
           if ((globalThis as any)?.dispatchEvent) {
             try {
               const CE = (globalThis as any).CustomEvent;
@@ -62,21 +65,21 @@ const SignUpNative = ({ navigate, goBack }: { navigate?: (name: string, params?:
               } else {
                 (globalThis as any).dispatchEvent({ type: 'loginSuccess', detail: { token, user } });
               }
-            } catch (e) {}
+            } catch (e) { /* ignore dispatch errors */ }
           }
 
-          setSuccess('Account created and signed in');
+          setSuccess(t('signUp.accountCreatedAndSignedIn'));
           navigate?.('Home');
           return;
         }
       } catch (loginErr) {
-        setSuccess('Account created successfully. Please sign in.');
+        setSuccess(t('signUp.accountCreated'));
         navigate?.('SignIn');
         return;
       }
 
     } catch (err: any) {
-      setError(err.message || 'Registration failed. Please try again.');
+      setError(err.message || t('signUp.registrationFailed'));
     } finally {
       setLoading(false);
     }
@@ -84,21 +87,34 @@ const SignUpNative = ({ navigate, goBack }: { navigate?: (name: string, params?:
 
   return (
     <SafeAreaView style={styles.container}>
-<View style={[styles.card, (passwordFocused || phoneFocused) && styles.cardShifted]}>
-        <Text style={styles.title}>Create account</Text>
+      {/* Leaves background */}
+      <Image source={require('../../assets/bg-home.png')} style={styles.leafTop} />
+      <Image source={require('../../assets/bg-home.png')} style={styles.leafBottom} />
+
+      {/* Top bar with Skip */}
+      <View style={styles.topBar}>
+        <TouchableOpacity onPress={() => navigate?.('Hello')}>
+          <Text style={styles.skipText}>Skips</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={[styles.formWrap, (passwordFocused || phoneFocused) && styles.formWrapShifted]}>
+        <Text style={styles.titleBig}>Create{`\n`}Account</Text>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
         {success ? <Text style={styles.success}>{success}</Text> : null}
 
-        <TextInput style={styles.input} placeholder="First name" placeholderTextColor="#000" value={firstName} onChangeText={setFirstName} />
-        <TextInput style={styles.input} placeholder="Last name" placeholderTextColor="#000" value={lastName} onChangeText={setLastName} />
-        <TextInput style={styles.input} placeholder="Email" placeholderTextColor="#000" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
-        <TextInput style={styles.input} placeholder="Phone (10 digits)" placeholderTextColor="#000" value={phone} onChangeText={(t) => setPhone(t.replace(/\D/g, ''))} keyboardType="number-pad" maxLength={10} onFocus={() => setPhoneFocused(true)} onBlur={() => setPhoneFocused(false)} />
+        <TextInput style={styles.pillInput} placeholder={t('signUp.firstName')} placeholderTextColor="#9CA3AF" value={firstName} onChangeText={setFirstName} autoCapitalize="words" />
+        <TextInput style={styles.pillInput} placeholder={t('signUp.lastName')} placeholderTextColor="#9CA3AF" value={lastName} onChangeText={setLastName} autoCapitalize="words" />
+        <TextInput style={styles.pillInput} placeholder={t('signUp.email') || "Email"} placeholderTextColor="#9CA3AF" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+
+        
+
         <View style={styles.passwordWrapper}>
           <TextInput
-            style={[styles.input, styles.passwordInput]}
+            style={[styles.pillInput, styles.passwordInput]}
             placeholder="Password"
-            placeholderTextColor="#000"
+            placeholderTextColor="#9CA3AF"
             secureTextEntry={secure}
             value={password}
             onChangeText={setPassword}
@@ -119,17 +135,20 @@ const SignUpNative = ({ navigate, goBack }: { navigate?: (name: string, params?:
             {secure ? <Eye size={18} color="#64748B" /> : <EyeOff size={18} color="#64748B" />}
           </TouchableOpacity>
         </View>
+        <View style={[styles.pillInput, styles.phoneRow]}>
+          <Text style={styles.flag}>🇮🇳</Text>
+          <Text style={styles.phoneDivider}>|</Text>
+          <TextInput style={styles.phoneInput} placeholder="Your number" placeholderTextColor="#9CA3AF" value={phone} onChangeText={(t) => setPhone(t.replace(/\D/g, ''))} keyboardType="number-pad" maxLength={10} onFocus={() => setPhoneFocused(true)} onBlur={() => setPhoneFocused(false)} />
+        </View>
 
-        <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleSignUp} disabled={loading}>
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Create account</Text>}
+        <TouchableOpacity style={[styles.doneButton, loading && styles.buttonDisabled]} onPress={handleSignUp} disabled={loading}>
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.doneText}>Done</Text>}
         </TouchableOpacity>
 
-        <View style={styles.row}>
-          <Text>Already have an account?</Text>
-          <TouchableOpacity onPress={() => navigate?.('SignIn')}>
-            <Text style={styles.link}> Sign in</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={styles.cancelRow} onPress={() => navigate?.('SignIn')}>
+          <Text style={styles.cancelText}>Cancel</Text>
+        </TouchableOpacity>
+
       </View>
     </SafeAreaView>
   );
@@ -137,18 +156,26 @@ const SignUpNative = ({ navigate, goBack }: { navigate?: (name: string, params?:
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
-  card: { width: '92%', maxWidth: 700, backgroundColor: '#fff', padding: 20, borderRadius: 12, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, elevation: 6 },
-  cardShifted: { marginTop: 30 },
-  title: { fontSize: 22, fontWeight: '700', textAlign: 'center', marginBottom: 12 },
-  input: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12, color: '#000' },
+  leafTop: { position: 'absolute', top: -200, left: -170, width: 400, height: 400, opacity: 0.35, transform: [{ rotate: '-120deg' }] },
+  leafBottom: { position: 'absolute', bottom: -260, right: -150, width: 520, height: 480, opacity: 0.35, transform: [{ rotate: '85deg' }] },
+  topBar: { position: 'absolute', top: 18, right: 18 },
+  skipText: { color: '#000000' ,marginTop:15, marginRight:10},
+  formWrap: { width: '92%', maxWidth: 520, paddingHorizontal: 20, paddingVertical: 12, alignItems: 'stretch' },
+  formWrapShifted: { marginTop: 10 },
+  titleBig: { fontSize: 44, fontWeight: '400', textAlign: 'left', marginBottom: 20, color: '#111827' },
+  pillInput: { backgroundColor: '#F3F4F6', borderRadius: 28, paddingVertical: 12, paddingHorizontal: 16, marginBottom: 12, color: '#000' },
+  phoneRow: { flexDirection: 'row', alignItems: 'center' },
+  flag: { marginRight: 8, fontSize: 18 },
+  phoneDivider: { marginRight: 8, color: '#9CA3AF' },
+  phoneInput: { flex: 1, color: '#000' },
   passwordWrapper: { position: 'relative' },
-  passwordInput: { paddingRight: 40 },
-  eyeButton: { position: 'absolute', right: 10, top: 12 },
-  button: { backgroundColor: '#e0555a', paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
+  passwordInput: { paddingRight: 48 },
+  eyeButton: { position: 'absolute', right: 12, top: 12 },
+  doneButton: { backgroundColor: '#E84F30', paddingVertical: 14, borderRadius: 30, alignItems: 'center', marginTop: 6 },
+  doneText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  cancelRow: { alignItems: 'center', marginTop: 12 },
+  cancelText: { color: '#6B7280' },
   buttonDisabled: { backgroundColor: '#9CA3AF' },
-  buttonText: { color: '#fff', fontWeight: '700' },
-  row: { flexDirection: 'row', justifyContent: 'center', marginTop: 12 },
-  link: { color: '#3b82f6', fontWeight: '700' },
   error: { color: '#ef4444', marginBottom: 8, textAlign: 'center' },
   success: { color: '#10b981', marginBottom: 8, textAlign: 'center' }
 });

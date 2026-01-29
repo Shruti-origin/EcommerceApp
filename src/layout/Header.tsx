@@ -14,41 +14,49 @@ import {
   StatusBar,
   ScrollView,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Truck, Search, Menu, ShoppingBag, Home, List, Gift, Heart as HeartIcon, User, ChevronLeft, Heart, LogOut, Sparkles, TrendingUp } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { guestCartUtils } from '../utils/cartUtils';
 import { guestWishlistUtils } from '../utils/wishlistUtils';
 
-const Header = ({ navigate, setActive, goBack, showBackButton = false }) => {
+type HeaderProps = {
+  navigate?: (name: string, params?: any) => void;
+  setActive?: (name: string | import('./BottomNav').TabKey) => void;
+  goBack?: () => void;
+  showBackButton?: boolean;
+};
+
+type UserType = { firstName?: string; lastName?: string; email?: string } | null;
+
+const Header: React.FC<HeaderProps> = ({ navigate, setActive, goBack, showBackButton = false }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [cartCount, setCartCount] = useState(0);
   const [wishlistCount, setWishlistCount] = useState(0);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<UserType>(null);
 
-  // Check authentication status
   useEffect(() => {
     checkAuth();
-    
-    // Listen for login/logout events
+
     const handleAuthChange = () => {
       checkAuth();
     };
 
-    if (typeof globalThis !== 'undefined' && globalThis.addEventListener) {
-      globalThis.addEventListener('loginSuccess', handleAuthChange);
-      globalThis.addEventListener('logoutSuccess', handleAuthChange);
+    if (typeof globalThis !== 'undefined' && (globalThis as any).addEventListener) {
+      try { (globalThis as any).addEventListener('loginSuccess', handleAuthChange); } catch (e) {}
+      try { (globalThis as any).addEventListener('logoutSuccess', handleAuthChange); } catch (e) {}
     }
 
-    // Also check auth when component becomes visible
     const intervalId = setInterval(checkAuth, 3000);
 
     return () => {
       clearInterval(intervalId);
-      if (typeof globalThis !== 'undefined' && globalThis.removeEventListener) {
-        globalThis.removeEventListener('loginSuccess', handleAuthChange);
-        globalThis.removeEventListener('logoutSuccess', handleAuthChange);
+      if (typeof globalThis !== 'undefined' && (globalThis as any).removeEventListener) {
+        try { (globalThis as any).removeEventListener('loginSuccess', handleAuthChange); } catch (e) {}
+        try { (globalThis as any).removeEventListener('logoutSuccess', handleAuthChange); } catch (e) {}
       }
     };
   }, []);
@@ -57,7 +65,7 @@ const Header = ({ navigate, setActive, goBack, showBackButton = false }) => {
     try {
       const token = await AsyncStorage.getItem('token');
       const userStr = await AsyncStorage.getItem('user');
-      
+
       if (token && userStr) {
         const userData = JSON.parse(userStr);
         setIsAuthenticated(true);
@@ -87,19 +95,19 @@ const Header = ({ navigate, setActive, goBack, showBackButton = false }) => {
               await AsyncStorage.removeItem('token');
               await AsyncStorage.removeItem('authToken');
               await AsyncStorage.removeItem('user');
-              
+
               setIsAuthenticated(false);
               setUser(null);
               closeSidebar();
 
               // Dispatch logout event
-              if (typeof globalThis !== 'undefined' && globalThis.dispatchEvent) {
+              if (typeof globalThis !== 'undefined' && (globalThis as any).dispatchEvent) {
                 try {
-                  const CE = globalThis.CustomEvent;
+                  const CE = (globalThis as any).CustomEvent;
                   if (CE) {
-                    globalThis.dispatchEvent(new CE('logoutSuccess'));
+                    (globalThis as any).dispatchEvent(new CE('logoutSuccess'));
                   } else {
-                    globalThis.dispatchEvent({ type: 'logoutSuccess' });
+                    (globalThis as any).dispatchEvent({ type: 'logoutSuccess' });
                   }
                 } catch (e) {}
               }
@@ -116,11 +124,10 @@ const Header = ({ navigate, setActive, goBack, showBackButton = false }) => {
     );
   };
 
-  // Load cart and wishlist counts on mount and set up intervals to check for updates
   useEffect(() => {
     const loadCartCount = async () => {
       const cart = await guestCartUtils.getCart();
-      const totalItems = cart.items.reduce((sum, item) => sum + (item.quantity || 0), 0);
+      const totalItems = cart.items.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0);
       setCartCount(totalItems);
     };
 
@@ -137,13 +144,11 @@ const Header = ({ navigate, setActive, goBack, showBackButton = false }) => {
     loadCartCount();
     loadWishlistCount();
 
-    // Check counts every 2 seconds to catch updates
     const interval = setInterval(() => { loadCartCount(); loadWishlistCount(); }, 2000);
 
     return () => clearInterval(interval);
   }, []);
 
-  // Reduced width and vertical padding so sidebar is smaller and centered
   const sidebarWidth = Math.min(280, Dimensions.get('window').width * 0.75);
   const translateX = useRef(new Animated.Value(-sidebarWidth)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
@@ -153,70 +158,35 @@ const Header = ({ navigate, setActive, goBack, showBackButton = false }) => {
   const handleSearch = () => {
     const q = String(searchQuery || '').trim();
     if (!q) return;
-    // close sidebar if open
     if (open) closeSidebar();
     if (navigate) navigate('Search', { query: q });
-    // keep the query in input so user can edit on results page
   };
 
   const openSidebar = () => {
     setOpen(true);
     Animated.parallel([
-      // animate to dark overlay (nearly-opaque) so content beneath is hidden but not white
       Animated.timing(overlayOpacity, { toValue: 0.6, duration: 300, easing: Easing.out(Easing.ease), useNativeDriver: true }),
-      Animated.spring(translateX, { 
-        toValue: 0, 
-        tension: 65,
-        friction: 11,
-        useNativeDriver: true 
-      }),
+      Animated.spring(translateX, { toValue: 0, tension: 65, friction: 11, useNativeDriver: true }),
     ]).start(() => {
-      // Staggered animation for menu items
       Animated.parallel([
-        Animated.timing(menuItemsOpacity, {
-          toValue: 1,
-          duration: 400,
-          delay: 100,
-          easing: Easing.out(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.spring(menuItemsTranslateY, {
-          toValue: 0,
-          tension: 50,
-          friction: 8,
-          delay: 10,
-          useNativeDriver: true,
-        }),
+        Animated.timing(menuItemsOpacity, { toValue: 1, duration: 400, delay: 100, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+        Animated.spring(menuItemsTranslateY, { toValue: 0, tension: 50, friction: 8, delay: 10, useNativeDriver: true }),
       ]).start();
     });
   };
 
   const closeSidebar = () => {
     Animated.parallel([
-      Animated.timing(menuItemsOpacity, { 
-        toValue: 0, 
-        duration: 150, 
-        useNativeDriver: true 
-      }),
-      Animated.timing(overlayOpacity, { 
-        toValue: 0, 
-        duration: 250, 
-        easing: Easing.in(Easing.ease), 
-        useNativeDriver: true 
-      }),
-      Animated.timing(translateX, { 
-        toValue: -sidebarWidth, 
-        duration: 280, 
-        easing: Easing.in(Easing.ease), 
-        useNativeDriver: true 
-      }),
+      Animated.timing(menuItemsOpacity, { toValue: 0, duration: 150, useNativeDriver: true }),
+      Animated.timing(overlayOpacity, { toValue: 0, duration: 250, easing: Easing.in(Easing.ease), useNativeDriver: true }),
+      Animated.timing(translateX, { toValue: -sidebarWidth, duration: 280, easing: Easing.in(Easing.ease), useNativeDriver: true }),
     ]).start(() => {
       setOpen(false);
       menuItemsTranslateY.setValue(20);
     });
   };
 
-  const handleSelect = (key) => {
+  const handleSelect = (key: string) => {
     setOpen(false);
     switch (key) {
       case 'Home':
@@ -231,14 +201,12 @@ const Header = ({ navigate, setActive, goBack, showBackButton = false }) => {
         if (navigate) navigate('Deals');
         break;
       case 'NewArrival':
-        // Map New Arrival to Deals screen for now
         if (navigate) navigate('Deals');
         break;
       case 'WishList':
         if (navigate) navigate('WishList');
         break;
       case 'Profile':
-        // Map Profile to Setting tab
         if (setActive) setActive('Setting');
         break;
       default:
@@ -313,7 +281,6 @@ const Header = ({ navigate, setActive, goBack, showBackButton = false }) => {
                 <View style={styles.avatar}>
                   <User size={28} color="#2563EB" strokeWidth={2} />
                 </View>
-                {/* Unified header: shows user info or a professional fallback */}
                 <Text style={styles.userName}>{user ? `${user.firstName} ${user.lastName}` : 'Welcome'}</Text>
                 <Text style={styles.userEmail}>{user ? user.email : 'Sign in to access your account'}</Text>
               </View>
@@ -452,9 +419,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 16,
-    horizontalAlign: 'center',
-    verticalAlign:'middle',
-    paddingLeft:'50',
+    paddingLeft: 50,
 
   },
   promoCart: {

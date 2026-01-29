@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, ScrollView } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Plus, Minus, Trash, ShoppingBag, ArrowRight } from 'lucide-react-native';
 import { guestCartUtils } from '../utils/cartUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -10,12 +11,13 @@ interface CartItem {
   name: string;
   price: number;
   quantity: number;
+  maxStock?: number;
   image?: string;
   brand?: string;
   description?: string;
   size?: string;
   color?: string;
-}
+} 
 
 interface Cart {
   items: CartItem[];
@@ -24,6 +26,7 @@ interface Cart {
 }
 
 const Cart = ({ navigate, goBack }: { navigate?: (name: string, params?: any) => void; goBack?: () => void }) => {
+  const { t } = useTranslation();
   const [cart, setCart] = useState<Cart>({ items: [], total: 0, itemCount: 0 });
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -36,7 +39,10 @@ const Cart = ({ navigate, goBack }: { navigate?: (name: string, params?: any) =>
 
       // Normalize cart shape to prevent render errors
       const normalized = {
-        items: Array.isArray(c?.items) ? c.items : [],
+        items: Array.isArray(c?.items) ? c.items.map((it: any) => ({
+          ...it,
+          maxStock: typeof it?.maxStock === 'number' ? it.maxStock : (it && it.maxStock ? Number(it.maxStock) : undefined)
+        })) : [],
         total: typeof c?.total === 'number' ? c.total : Number(c?.total) || 0,
         itemCount: typeof c?.itemCount === 'number' ? c.itemCount : (Array.isArray(c?.items) ? c.items.length : 0),
       };
@@ -82,6 +88,15 @@ const Cart = ({ navigate, goBack }: { navigate?: (name: string, params?: any) =>
   const updateQuantity = async (id: string, quantity: number) => {
     try {
       if (quantity < 1) return;
+
+      // Check current cart item for stock limits
+      const current = await guestCartUtils.getCart();
+      const found: any = (current?.items || []).find((it: any) => String(it.id) === String(id));
+      if (found && typeof found.maxStock === 'number' && quantity > found.maxStock) {
+        Alert.alert('Stock limit', `Only ${found.maxStock} item(s) available for this product.`);
+        return;
+      }
+
       await guestCartUtils.updateQuantity(id, quantity);
       await loadCart();
     } catch (e) {
@@ -96,7 +111,7 @@ const Cart = ({ navigate, goBack }: { navigate?: (name: string, params?: any) =>
       await loadCart();
     } catch (e) {
       console.error('Failed to remove item', e);
-      Alert.alert('Error', 'Could not remove item');
+      Alert.alert(t('common.error'), 'Could not remove item');
     }
   };
 
@@ -185,10 +200,17 @@ const Cart = ({ navigate, goBack }: { navigate?: (name: string, params?: any) =>
               <Minus size={16} color={item.quantity <= 1 ? '#9CA3AF' : '#111'} />
             </TouchableOpacity>
             <Text style={styles.qtyText}>{item.quantity}</Text>
-            <TouchableOpacity onPress={() => updateQuantity(item.id, item.quantity + 1)} style={styles.qtyBtn}>
+            <TouchableOpacity 
+              onPress={() => updateQuantity(item.id, item.quantity + 1)} 
+              style={[styles.qtyBtn, (typeof item.maxStock === 'number' && item.quantity >= item.maxStock) && styles.qtyBtnDisabled]}
+              disabled={typeof item.maxStock === 'number' && item.quantity >= item.maxStock}
+            >
               <Plus size={16} />
             </TouchableOpacity>
           </View>
+          {typeof item.maxStock === 'number' && item.quantity >= item.maxStock ? (
+            <Text style={styles.availabilityText}>Only {item.maxStock} available</Text>
+          ) : null}
           <TouchableOpacity onPress={() => removeItem(item.id)} style={styles.removeBtn}>
             <Trash size={14} color="#EF4444" />
             <Text style={styles.removeText}>Remove</Text>
@@ -213,12 +235,12 @@ const Cart = ({ navigate, goBack }: { navigate?: (name: string, params?: any) =>
       <View style={styles.container}>
         <View style={styles.emptyContainer}>
           <ShoppingBag size={96} color="#9CA3AF" strokeWidth={1.5} />
-          <Text style={styles.emptyTitle}>Your cart is empty</Text>
+          <Text style={styles.emptyTitle}>{t('cart.emptyCart')}</Text>
           <Text style={styles.emptySubtitle}>
-            Looks like you haven't added any items to your cart yet.
+            {t('cart.startShopping')}
           </Text>
           <TouchableOpacity style={styles.shopBtn} onPress={() => navigate?.('Categories')}>
-            <Text style={styles.shopBtnText}>Continue Shopping</Text>
+            <Text style={styles.shopBtnText}>{t('cart.continueShopping')}</Text>
             <ArrowRight size={20} color="#fff" />
           </TouchableOpacity>
         </View>
@@ -362,6 +384,7 @@ const styles = StyleSheet.create({
   qtyText: { width: 40, textAlign: 'center', fontWeight: '700', fontSize: 14 },
   removeBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   removeText: { fontSize: 14, fontWeight: '600', color: '#EF4444' },
+  availabilityText: { fontSize: 12, color: '#EF4444', marginTop: 8 },
   
   // Order Summary
   summarySection: { 

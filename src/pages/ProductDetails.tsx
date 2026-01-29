@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { ArrowUpDown, SlidersHorizontal, ChevronDown, Star, Minus, Plus, ShoppingCart } from 'lucide-react-native';
 import { productService } from '../services/api';
 import { guestCartUtils } from '../utils/cartUtils';
@@ -45,6 +46,7 @@ interface Product {
 const ProductDetails: React.FC<{ product?: any; navigate?: (screen: string, params?: any) => void; goBack?: () => void }> = ({ product: productProp, navigate, goBack }) => {
   console.log('[ProductDetails] mounted with product:', productProp);
   
+  const { t } = useTranslation();
   // State for product data
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -428,7 +430,7 @@ const ProductDetails: React.FC<{ product?: any; navigate?: (screen: string, para
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Filters Row */}
+        {/* Filters Row - commented out
         <View style={styles.filtersRow}>
           <TouchableOpacity style={styles.filterBtn}>
             <ArrowUpDown size={14} color="#111827" />
@@ -450,6 +452,7 @@ const ProductDetails: React.FC<{ product?: any; navigate?: (screen: string, para
             <Text style={styles.filterText}>Filter</Text>
           </TouchableOpacity>
         </View>
+        */}
 
         {/* Product Image */}
         <View style={styles.imageContainer}>

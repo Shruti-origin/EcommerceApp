@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, SafeAreaView, StatusBar } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft } from 'lucide-react-native';
 import ProductsService from '../services/productsService';
 
 const placeholder = require('../../assets/s-h1.png');
 
 const CategoryProducts = ({ categoryId, title, navigate, goBack, items }: { categoryId?: string; title?: string; navigate?: (s: string, p?: any) => void; goBack?: () => void; items?: any[] }) => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState<boolean>(false);
   const [products, setProducts] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +31,7 @@ const CategoryProducts = ({ categoryId, title, navigate, goBack, items }: { cate
         setProducts(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error('Category products failed', err);
-        setError('Failed to load products');
+        setError(t('categories.loading'));
         setProducts([]);
       } finally {
         setLoading(false);
@@ -66,7 +68,7 @@ const CategoryProducts = ({ categoryId, title, navigate, goBack, items }: { cate
         <TouchableOpacity onPress={() => goBack ? goBack() : navigate?.('Home')} style={styles.backBtn}>
           <ChevronLeft size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{title || 'Products'}</Text>
+        <Text style={styles.headerTitle}>{title || t('categories.products')}</Text>
       </View>
 
       <View style={styles.container}>
@@ -75,7 +77,7 @@ const CategoryProducts = ({ categoryId, title, navigate, goBack, items }: { cate
         ) : error ? (
           <View style={styles.center}><Text>{error}</Text></View>
         ) : products.length === 0 ? (
-          <View style={styles.center}><Text>No products found</Text></View>
+          <View style={styles.center}><Text>{t('categories.noProducts')}</Text></View>
         ) : (
           <FlatList
             data={products}

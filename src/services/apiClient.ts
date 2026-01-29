@@ -51,8 +51,8 @@ class ApiClient {
           errorData = { raw: rawText };
         }
 
-        // Detailed logging for easier debugging
-        console.error('API responded with error', {
+        // Detailed logging for easier debugging (use warn so expected 4xx endpoints don't trigger fatal overlay)
+        console.warn('[API] responded with error', {
           url,
           status: response.status,
           statusText: response.statusText,
@@ -75,8 +75,8 @@ class ApiClient {
           console.log('User needs to login again');
         }
 
-        // Throw error with helpful message when available
-        const message = (errorData && (errorData.message as string)) || (typeof errorData === 'string' ? errorData : (errorData.raw as string)) || `HTTP error! status: ${response.status}`;
+        // Throw error with helpful message when available (include endpoint for easier debugging)
+        const message = (errorData && (errorData.message as string)) || (typeof errorData === 'string' ? errorData : (errorData.raw as string)) || `HTTP error! status: ${response.status} for ${url}`;
         throw new Error(message);
       }
 
@@ -89,7 +89,8 @@ class ApiClient {
         return text;
       }
     } catch (error) {
-      console.error('API request failed:', error);
+      // Log as a warning so transient or handled failures don't trigger a red error overlay in RN
+      console.warn('API request failed:', error);
       throw error;
     }
   }
