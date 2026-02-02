@@ -42,6 +42,7 @@ import ShippingAddress from './src/component/ShippingAddress';
 import Language from './src/component/Language';
 import AboutUs from './src/component/AboutUs';
 import VendorShopSectionNative from './src/component/VendorShopSectionNative';
+import Otp from './src/pages/Otp';
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
@@ -190,7 +191,7 @@ function AppContent() {
 
   const isBackButtonPage = route.name === 'ProductDetails' || route.name === 'WishList' || route.name === 'Search' || route.name === 'Cart' || route.name === 'PaymentMethod' || route.name === 'MyOrders' || route.name === 'CategoryProducts' || route.name === 'ShippingAddress' || route.name === 'Language' || route.name === 'About';
   // Hide header on Account and also on SignUp/SignIn pages where a full-screen onboarding is desired
-  const hideHeader = route.name === 'Account' || active === 'Account' || route.name === 'ShippingAddress' || route.name === 'Language' || route.name === 'About' || route.name === 'SignUp' || route.name === 'SignIn' || route.name === 'ForgetPassword' || route.name === 'Hello';
+  const hideHeader = route.name === 'Account' || active === 'Account' || route.name === 'ShippingAddress' || route.name === 'Language' || route.name === 'About' || route.name === 'SignUp' || route.name === 'SignIn' || route.name === 'ForgetPassword' || route.name === 'Hello' || route.name === 'Otp';
 
   return (
     <View style={styles.container}>
@@ -222,6 +223,8 @@ function AppContent() {
           <SignInNative navigate={navigate} goBack={goBack} />
         ) : route.name === 'SignUp' ? (
           <SignUpNative navigate={navigate} goBack={goBack} />
+        ) : route.name === 'Otp' ? (
+          <Otp navigation={{ navigate, goBack }} route={{ params: route.params }} />
         ) : route.name === 'ForgetPassword' ? (
           <ForgetPassword navigate={navigate} goBack={goBack} />
         ) : route.name === 'PaymentMethod' ? (
@@ -256,7 +259,7 @@ function AppContent() {
         )} 
       </View>
 
-      {route.name !== 'ProductDetails' && route.name !== 'SignUp' && route.name !== 'SignIn' && route.name !== 'ForgetPassword' && route.name !== 'Hello' && <BottomNav active={active} onChange={handleSetActive} />}
+      {route.name !== 'ProductDetails' && route.name !== 'SignUp' && route.name !== 'SignIn' && route.name !== 'ForgetPassword' && route.name !== 'Hello' && route.name !== 'Otp' && <BottomNav active={active} onChange={handleSetActive} /> }
 
       {/* Splash overlay - shows on app open and hides after duration; hide if user already signed-in */}
       {showSplash && !isAuthenticated && (

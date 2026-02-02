@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { View, Animated, StyleSheet, Image, TouchableOpacity, TouchableWithoutFeedback, useWindowDimensions, ActivityIndicator, Text } from 'react-native';
+import { View, Animated, StyleSheet, Image, TouchableOpacity, TouchableWithoutFeedback, useWindowDimensions, ActivityIndicator, Text, Alert } from 'react-native';
 import { categoryService, vendorService } from '../services/api';
 
 interface VendorImage {
@@ -45,7 +45,7 @@ const ScrollingSectionNative: React.FC<{ navigate?: (name: string, params?: any)
         
         // Try to fetch from vendors with shop images
         console.log('Fetching vendors with status: approved and active: true');
-        const vendorResponse = await vendorService.getAll({ status: 'active', active: true });
+        const vendorResponse = await vendorService.getAll({ status: 'active' });
         const vendors = vendorResponse?.data || vendorResponse || [];
         
         console.log('Vendors fetched:', vendors?.length || 0);
@@ -71,7 +71,7 @@ const ScrollingSectionNative: React.FC<{ navigate?: (name: string, params?: any)
             }
             
             if (vendorImagesList.length > 0) {
-              vendorImagesList.slice(0, 3).forEach((imageUrl: string) => {
+              vendorImagesList.forEach((imageUrl: string) => {
                 if (imageUrl?.trim()) {
                   const fullImageUrl = imageUrl.startsWith('http') 
                     ? imageUrl 
@@ -119,12 +119,15 @@ const ScrollingSectionNative: React.FC<{ navigate?: (name: string, params?: any)
 
   // Handle click on vendor image
   const handleVendorClick = (vendorImage: VendorImage) => {
+    // Use the registered route name in App: 'VendorShop' (or fallback to vendor listing)
     if (vendorImage.vendorId) {
-      // Navigate to vendor shop page with vendor info
       navigate?.('VendorShop', { 
         vendorId: vendorImage.vendorId, 
         vendorName: vendorImage.vendorName 
       });
+    } else {
+      // No vendorId available (fallback images) - open vendors listing / shop page
+      navigate?.('VendorShop');
     }
   };
 
@@ -133,11 +136,11 @@ const ScrollingSectionNative: React.FC<{ navigate?: (name: string, params?: any)
     ? [...vendorImages, ...vendorImages, ...vendorImages, ...vendorImages, ...vendorImages, ...vendorImages, ...vendorImages, ...vendorImages] 
     : [];
 
-  // Responsive: determine how many cards should be visible at once (matches CSS breakpoints)
-  const cardsPerView = windowWidth >= 1024 ? 5 : windowWidth >= 768 ? 4 : windowWidth >= 640 ? 3 : 2;
+  // Card dimensions: 50% width with 9px margin
+  const cardsPerView = 15; // Show multiple cards in scrolling animation
   
   // Card dimensions based on viewport width and desired cards per view (matching CSS media queries)
-  const cardWidth = windowWidth / cardsPerView;
+  const cardWidth = 120; // Fixed width 120px to show multiple cards
   const cardHeight = windowWidth >= 1024 ? 160 : windowWidth >= 768 ? 136 : windowWidth >= 640 ? 120 : 96;
 
   useEffect(() => {
@@ -151,7 +154,7 @@ const ScrollingSectionNative: React.FC<{ navigate?: (name: string, params?: any)
     const hasPerf = perf && typeof perf.now === 'function';
     let last = hasPerf ? perf.now() : Date.now();
     let x = 0; // current translateX value
-    const speedPxPerSec = 80; // pixels per second, optimal speed
+    const speedPxPerSec = 40; // pixels per second, slower speed for longer scrolling time
 
     const step = (time?: number) => {
       const now = (typeof time === 'number' && time > 0) ? time : (hasPerf ? perf.now() : Date.now());
@@ -202,7 +205,7 @@ const ScrollingSectionNative: React.FC<{ navigate?: (name: string, params?: any)
 
   return (
     <View style={styles.section}>
-      <View style={styles.innerWrap}>
+      <View style={[styles.innerWrap, { width: Math.round(windowWidth * 2.2), alignSelf: 'center' }]}>
         <TouchableWithoutFeedback onPressIn={onPressIn} onPressOut={onPressOut}>
           <Animated.View
             onLayout={onInnerLayout}
@@ -216,7 +219,18 @@ const ScrollingSectionNative: React.FC<{ navigate?: (name: string, params?: any)
               <TouchableOpacity
                 key={i}
                 activeOpacity={0.85}
-                onPress={() => handleVendorClick(vendorImage)}
+                onPress={() => {
+                  console.log('Card pressed:', vendorImage.vendorName, 'id:', vendorImage.vendorId);
+                  if (vendorImage.vendorId) {
+                    handleVendorClick(vendorImage);
+                  } else {
+                    // fallback behavior for items without vendorId (fallback images)
+                    Alert.alert(vendorImage.vendorName || 'Vendor', 'Vendor details not available', [
+                      { text: 'OK' },
+                      { text: 'Open Vendor Page', onPress: () => handleVendorClick(vendorImage) }
+                    ]);
+                  }
+                }}
                 onPressIn={onPressIn}
                 onPressOut={onPressOut}
                 style={[styles.brandCard, { 
@@ -275,6 +289,8 @@ const styles = StyleSheet.create({
   innerWrap: {
     overflow: 'hidden',
     position: 'relative',
+    width: '100%', // Ensure full width
+    minHeight: 100, // Ensure container has height
   },
   // matches CSS .scroll-inner
   track: {

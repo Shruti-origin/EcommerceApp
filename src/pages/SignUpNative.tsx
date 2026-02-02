@@ -4,8 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff } from 'lucide-react-native';
+// Firebase auth is required for phone OTP. We load it dynamically at runtime so the app still compiles if the native module isn't installed.
 import { authService } from '../services/api';
 import { guestCartUtils } from '../utils/cartUtils';
+
+// Note: make sure @react-native-firebase/auth is installed and configured for your app (Android & iOS).
 
 const SignUpNative: React.FC<{ navigate?: (name: string, params?: any) => void; goBack?: () => void }> = ({ navigate, goBack }) => {
   const { t } = useTranslation();
@@ -22,6 +25,8 @@ const SignUpNative: React.FC<{ navigate?: (name: string, params?: any) => void; 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  const [sendingOtp, setSendingOtp] = useState(false);
+
   const handleSignUp = async () => {
     setError('');
     setSuccess('');
@@ -32,56 +37,81 @@ const SignUpNative: React.FC<{ navigate?: (name: string, params?: any) => void; 
       return;
     }
 
-    // Validate phone contains exactly 10 digits
+    // Validate phone contains exactly 10 digits (Indian format assumed here)
     if (!/^[0-9]{10}$/.test(phone)) {
       setError(t('signUp.phoneValidation'));
       return;
     }
 
-    setLoading(true);
+    const payload: any = { firstName: firstName.trim(), lastName: lastName.trim(), email, phone, password, role: 'customer' };
+
+    // Format phone with country code. Adjust as needed for other countries.
+    const phoneWithCountry = `+91${phone}`;
+
     try {
-      const payload: any = { firstName: firstName.trim(), lastName: lastName.trim(), email, phone, password, role: 'customer' };
+      setSendingOtp(true);
 
-      const res = await authService.register(payload);
-
-      // Try auto-login
+      // Dynamically require firebase auth to avoid compile-time errors when module isn't installed in some dev setups
+      const _authModuleName = '@react-native-firebase/auth';
+      let authPkg: any = null;
       try {
-        const loginRes = await authService.login(email, password);
-        const token = loginRes.token || loginRes.accessToken || loginRes.access_token;
-        const user = loginRes.user || loginRes;
+        authPkg = require(_authModuleName);
+      } catch (e) {
+        authPkg = null;
+      }
 
-        if (token && user) {
-          await AsyncStorage.setItem('token', token);
-          await AsyncStorage.setItem('authToken', token);
-          await AsyncStorage.setItem('user', JSON.stringify(user));
-          // Optionally store password so profile settings can show it during development (not recommended for production).
-          try { await AsyncStorage.setItem('userPassword', password); } catch (e) {}
-
-          if ((globalThis as any)?.dispatchEvent) {
-            try {
-              const CE = (globalThis as any).CustomEvent;
-              if (CE) {
-                (globalThis as any).dispatchEvent(new CE('loginSuccess', { detail: { token, user } }));
-              } else {
-                (globalThis as any).dispatchEvent({ type: 'loginSuccess', detail: { token, user } });
-              }
-            } catch (e) { /* ignore dispatch errors */ }
-          }
-
-          setSuccess(t('signUp.accountCreatedAndSignedIn'));
-          navigate?.('Home');
-          return;
-        }
-      } catch (loginErr) {
-        setSuccess(t('signUp.accountCreated'));
-        navigate?.('SignIn');
+      if (!authPkg) {
+        // Development fallback: Firebase not installed — use mock OTP flow
+        console.warn('⚠️ Firebase auth not installed. Using development mock OTP mode.');
+        console.warn('ℹ️ Any 6-digit code will work in OTP screen.');
+        // Navigate to OTP with mock flag so OTP screen knows to skip Firebase verification
+        navigate?.('Otp', { name: firstName, phone: phoneWithCountry, payload, useMockOtp: true });
         return;
       }
 
+      // Send OTP via Firebase - support both modular and legacy API shapes to avoid deprecation warnings
+      const sendOtp = async (phoneNumber: string) => {
+        // Try top-level modular function: signInWithPhoneNumber(authInstance?, phoneNumber)
+        if (typeof authPkg.signInWithPhoneNumber === 'function') {
+          try {
+            // Try calling without auth instance first (some builds export helper directly)
+            return await authPkg.signInWithPhoneNumber(phoneNumber);
+          } catch (e) {
+            // Try passing auth instance if available
+            try {
+              const authInstance = typeof authPkg.getAuth === 'function' ? authPkg.getAuth() : (typeof authPkg.default === 'function' ? authPkg.default() : null);
+              if (authInstance) return await authPkg.signInWithPhoneNumber(authInstance, phoneNumber);
+            } catch (e2) { /* fall through */ }
+          }
+        }
+
+        // Fall back to legacy namespaced API: auth().signInWithPhoneNumber
+        const authInstanceLegacy = (typeof authPkg.default === 'function') ? authPkg.default() : authPkg.default || authPkg;
+        if (authInstanceLegacy && typeof authInstanceLegacy.signInWithPhoneNumber === 'function') {
+          return await authInstanceLegacy.signInWithPhoneNumber(phoneNumber);
+        }
+
+        throw new Error('Unsupported firebase auth API. Update @react-native-firebase/auth or use mock OTP.');
+      };
+
+      const confirmation = await sendOtp(phoneWithCountry);
+
+      // Navigate to OTP screen with confirmation object and payload so Otp screen can verify & then register
+      navigate?.('Otp', { name: firstName, phone: phoneWithCountry, confirmation, payload });
     } catch (err: any) {
-      setError(err.message || t('signUp.registrationFailed'));
+      console.error('Failed to send OTP', err);
+      // If the project has billing disabled for SMS (BILLING_NOT_ENABLED) fall back to development mock OTP mode
+      if (err?.code === 'auth/billing-not' || (err?.message || '').includes('BILLING_NOT_ENABLED')) {
+        console.warn('Firebase SMS billing not enabled. Falling back to development mock OTP. To fix: enable billing or add a test phone number in Firebase console.');
+        const billingMsg = 'SMS sending is disabled for this Firebase project (BILLING_NOT_ENABLED). Using development mock OTP. Add a test phone or enable billing in Firebase Console.';
+        setError(billingMsg);
+        // Navigate to OTP screen with mock flag and a billing fallback flag so Otp can show helpful guidance
+        navigate?.('Otp', { name: firstName, phone: phoneWithCountry, payload, useMockOtp: true, billingFallback: true, billingMessage: billingMsg });
+      } else {
+        setError(err?.message || 'Failed to send OTP. Please try again.');
+      }
     } finally {
-      setLoading(false);
+      setSendingOtp(false);
     }
   };
 
@@ -141,8 +171,8 @@ const SignUpNative: React.FC<{ navigate?: (name: string, params?: any) => void; 
           <TextInput style={styles.phoneInput} placeholder="Your number" placeholderTextColor="#9CA3AF" value={phone} onChangeText={(t) => setPhone(t.replace(/\D/g, ''))} keyboardType="number-pad" maxLength={10} onFocus={() => setPhoneFocused(true)} onBlur={() => setPhoneFocused(false)} />
         </View>
 
-        <TouchableOpacity style={[styles.doneButton, loading && styles.buttonDisabled]} onPress={handleSignUp} disabled={loading}>
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.doneText}>Done</Text>}
+        <TouchableOpacity style={[styles.doneButton, (loading || sendingOtp) && styles.buttonDisabled]} onPress={handleSignUp} disabled={loading || sendingOtp}>
+          {(loading || sendingOtp) ? <ActivityIndicator color="#fff" /> : <Text style={styles.doneText}>Done</Text>}
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.cancelRow} onPress={() => navigate?.('SignIn')}>

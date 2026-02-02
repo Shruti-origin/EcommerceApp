@@ -36,7 +36,7 @@ const ForgetPassword: React.FC<{ navigate?: (name: string, params?: any) => void
       <Image source={require('../../assets/bg-home.png')} style={styles.leafBottom} />
 
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => navigate?.('Hello')}>
+        <TouchableOpacity onPress={() => navigate?.('SignIn')}>
           <Text style={styles.skipText}>Skips</Text>
         </TouchableOpacity>
       </View>

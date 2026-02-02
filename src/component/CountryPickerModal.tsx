@@ -40,7 +40,11 @@ export default function CountryPickerModal({
     if (propCountries && propCountries.length > 0) {
       console.log('Using countries from props:', propCountries.length);
       setCountries(propCountries);
+      // Ensure full list is visible immediately when modal opens
+      setFilteredCountries(propCountries);
       setLoading(propLoading);
+      // Clear previous search so the full list shows when opened
+      if (visible) setSearch('');
     } else if (visible && countries.length === 0) {
       console.log('Fetching countries from REST Countries API as fallback');
       fetchCountries();
@@ -99,6 +103,14 @@ export default function CountryPickerModal({
     }
   }, [search, countries]);
 
+  // When the modal becomes visible, reset search and ensure the list shows everything
+  useEffect(() => {
+    if (visible) {
+      setSearch('');
+      setFilteredCountries(countries);
+    }
+  }, [visible, countries]);
+
   const handleSelect = (country: Country) => {
     onSelect(country);
     setSearch('');
@@ -119,7 +131,12 @@ export default function CountryPickerModal({
         <Pressable style={styles.overlayPressable} onPress={handleClose} />
         <View style={[styles.sheet, { paddingBottom: insets.bottom || 20 }]}>
           <View style={styles.headerRow}>
-            <Text style={styles.title}>Select Country</Text>
+            <View>
+              <Text style={styles.title}>Select Country</Text>
+              {countries.length > 0 && (
+                <Text style={styles.countText}>Showing {filteredCountries.length} of {countries.length} countries</Text>
+              )}
+            </View>
             <Pressable onPress={handleClose} style={styles.closeBtn}>
               <X size={20} color="#6B7280" />
             </Pressable>
@@ -133,7 +150,7 @@ export default function CountryPickerModal({
               placeholder="Search country..."
               placeholderTextColor="#9CA3AF"
               style={styles.searchInput}
-              autoFocus={false}
+              autoFocus={visible}
             />
           </View>
 
@@ -156,6 +173,20 @@ export default function CountryPickerModal({
                 <Text style={styles.retryText}>Retry</Text>
               </TouchableOpacity>
             </View>
+          ) : filteredCountries.length === 0 && countries.length > 0 ? (
+            // Edge case: countries exist but filtered list is empty (probably due to a stray search input)
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No countries match your search.</Text>
+              <TouchableOpacity
+                style={[styles.retryBtn, { marginTop: 12 }]}
+                onPress={() => {
+                  setSearch('');
+                  setFilteredCountries(countries);
+                }}
+              >
+                <Text style={styles.retryText}>Show all countries ({countries.length})</Text>
+              </TouchableOpacity>
+            </View>
           ) : (
             <FlatList
               data={filteredCountries}
@@ -163,6 +194,7 @@ export default function CountryPickerModal({
               style={styles.list}
               contentContainerStyle={styles.listContent}
               showsVerticalScrollIndicator={true}
+              ItemSeparatorComponent={() => <View style={styles.separator} />}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={[
@@ -172,8 +204,9 @@ export default function CountryPickerModal({
                   onPress={() => handleSelect(item)}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.flag}>{item.flag || '🏳️'}</Text>
-                  <Text style={styles.countryName}>{item.name}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.countryName}>{item.name}</Text>
+                  </View>
                   {selectedCountry === item.name && (
                     <View style={styles.checkmark}>
                       <Text style={styles.checkmarkText}>✓</Text>
@@ -219,7 +252,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#111',
   },
-  list: { flex: 1 },
+  list: { maxHeight: '65%' },
   listContent: { paddingHorizontal: 20, paddingBottom: 12 },
   countryItem: {
     flexDirection: 'row',
@@ -229,11 +262,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
+
+  countryName: { fontSize: 16, color: '#111', marginBottom: 2 },
+
+  countText: { color: '#6B7280', fontSize: 12, marginTop: 4 },
+  separator: { height: 1, backgroundColor: '#F3F4F6', marginLeft: 16 },
   selectedItem: {
     backgroundColor: '#FEF2F2',
+    borderLeftWidth: 4,
+    borderLeftColor: '#E26B68',
+    paddingVertical: 12,
   },
-  flag: { fontSize: 24, marginRight: 12 },
-  countryName: { flex: 1, fontSize: 16, color: '#111' },
   checkmark: {
     width: 20,
     height: 20,

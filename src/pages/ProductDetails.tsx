@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowUpDown, SlidersHorizontal, ChevronDown, Star, Minus, Plus, ShoppingCart } from 'lucide-react-native';
 import { productService } from '../services/api';
 import { guestCartUtils } from '../utils/cartUtils';
+import getLocalized from '../utils/localize';
 
 interface Product {
   id: string;
@@ -331,16 +332,16 @@ const ProductDetails: React.FC<{ product?: any; navigate?: (screen: string, para
     const cartItem = {
       id: variantId,
       productId: product.id,
-      name: product.name,
+      name: getLocalized(product, 'name') || product.name,
       price: finalPrice,
       quantity: quantity,
       size: selectedSize || 'Free Size',
       color: selectedColor || 'Default',
       image: displayImage,
       brand: product.brand || 'Unknown',
-      category: product.category?.name || 'Unknown',
+      category: getLocalized(product.category, 'name') || product.category?.name || 'Unknown',
       maxStock: currentStock,
-      description: product.description || product.shortDescription || product.name
+      description: getLocalized(product, 'description') || getLocalized(product, 'shortDescription') || getLocalized(product, 'name') || product.description || product.shortDescription || product.name
     };
     
     try {
@@ -478,7 +479,7 @@ const ProductDetails: React.FC<{ product?: any; navigate?: (screen: string, para
 
           {/* Product Title */}
           <Text style={styles.productTitle}>
-            {product?.name || 'Product'}
+            {getLocalized(product, 'name') || product?.name || 'Product'}
           </Text>
 
           {/* Size Section */}
@@ -557,7 +558,7 @@ const ProductDetails: React.FC<{ product?: any; navigate?: (screen: string, para
           <View style={styles.descriptionSection}>
             <Text style={styles.descriptionTitle}>Description</Text>
             <Text style={styles.descriptionText}>
-              {product?.description || product?.shortDescription || 'No description available.'}
+              {getLocalized(product, 'description') || getLocalized(product, 'shortDescription') || 'No description available.'}
             </Text>
           </View>
         </View>

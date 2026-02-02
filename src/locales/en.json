@@ -71,10 +71,56 @@
     "title": "Deals",
     "hotDeals": "Hot Deals",
     "limitedOffer": "Limited Time Offer",
-    "shopNow": "Shop Now"
+    "shopNow": "Shop Now",
+    "promoLabel": "SPECIAL OFFER",
+    "promoTitle": "Extra Sale 30% off",
+    "promoSub": "Bucket toy with a contrast colored handle. Perfect for playing on the beach.",
+    "getOffer": "Get only Rs. {{price}}",
+    "sort": "Sort",
+    "category": "Category",
+    "age": "Age",
+    "filter": "Filter",
+    "sectionGhagra": "Ghagra",
+    "sortOptions": {
+      "relevance": "Relevance",
+      "newArrivals": "New Arrivals",
+      "priceHighToLow": "Price (High To Low)",
+      "priceLowToHigh": "Price (Low To High)",
+      "rating": "Rating",
+      "discount": "Discount"
+    }
   },
   "home": {
-    "searchPlaceholder": "Search products..."
+    "searchPlaceholder": "Search products...",
+    "bestSelling": "Best Selling Products",
+    "viewAll": "View All →"
+  },
+  "productGrid": {
+    "heading": "Cloth's of Every Style",
+    "subheading": "What's more, we do it right!"
+  },
+  "offsetPrinting": {
+    "heading": "HIGH-QUALITY OFFSET PRINTING",
+    "subheading": "All Featured",
+    "sort": "Sort",
+    "filter": "Filter",
+    "fallback": {
+      "1": "Zone Sweatshirt",
+      "2": "Zoo Men's t-shirt",
+      "3": "Toddler T-shirt",
+      "4": "Fine Jersey Tee"
+    }
+  },
+  "testimonial": {
+    "title": "What People Are Saying",
+    "subtitle": "We provide support for more than 15K+ Businesses."
+  },
+  "features": {
+    "h1": "Cool Cloths, Hot Deals",
+    "h2": "– Only at Tulsi Baug!",
+    "p": "Style Mode: Tulsi Baug",
+    "shopNow": "Shop Now →",
+    "contactUs": "Contact Us →"
   },
   "signIn": {
     "title": "Sign in",
@@ -254,8 +300,33 @@
     "allCategories": "All Categories",
     "viewAll": "View All",
     "products": "Products",
+    "featuredProducts": "Featured Products",
     "noProducts": "No products found",
     "loading": "Loading products..."
+  },
+  "productGrid": {
+    "heading": "Clothes of Every Style",
+    "subheading": "What's more, we do it right!"
+  },
+  "header": {
+    "promoText": "Buy 3 Get 25% Off, Shop Now >>",
+    "welcome": "Welcome",
+    "signInPrompt": "Sign in to access your account",
+    "searchPlaceholder": "Search any product..",
+    "home": "Home",
+    "categories": "Categories",
+    "deals": "Deals & Offers",
+    "newArrivals": "New Arrivals",
+    "wishlist": "Wishlist",
+    "myOrders": "My Orders",
+    "logout": "Logout",
+    "signIn": "Sign In",
+    "createAccount": "Create Account",
+    "logoutConfirm": "Are you sure you want to logout?",
+    "logoutCancel": "Cancel",
+    "logoutAction": "Logout",
+    "logoutSuccessMessage": "Logged out successfully",
+    "logoutFailed": "Failed to logout"
   },
   "common": {
     "success": "Success",
@@ -269,6 +340,8 @@
     "close": "Close",
     "confirm": "Confirm",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "done": "Done",
+    "apply": "Apply"
   }
 }

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 const Features: React.FC = () => {
   const screenWidth = Dimensions.get('window').width;
@@ -15,6 +16,8 @@ const Features: React.FC = () => {
   // Replace with the correct asset when you add it to the assets folder.
   const deco6 = require('../../assets/bg-pur-r.png');
 
+  const { t } = useTranslation();
+
   return (
     <View style={styles.section}>
       {/* Decorative Images (absolute positioned) */}
@@ -26,17 +29,17 @@ const Features: React.FC = () => {
       <Image source={deco6} style={[styles.deco, styles.decoBottommiddleRight]} resizeMode="contain" />
 
       <View style={styles.content}>
-        <Text style={styles.h1}>Cool Cloths, Hot Deals</Text>
-        <Text style={styles.h2}>– Only at Tulsi Baug!</Text>
-        <Text style={styles.p}>Style Mode: Tulsi Baug</Text>
+        <Text style={styles.h1}>{t('features.h1')}</Text>
+        <Text style={styles.h2}>{t('features.h2')}</Text>
+        <Text style={styles.p}>{t('features.p')}</Text>
 
         <View style={styles.buttonsRow}>
           <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.8}>
-            <Text style={styles.primaryText}>Shop Now →</Text>
+            <Text style={styles.primaryText}>{t('features.shopNow')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.secondaryBtn} activeOpacity={0.8}>
-            <Text style={styles.secondaryText}>Contact Us →</Text>
+            <Text style={styles.secondaryText}>{t('features.contactUs')}</Text>
           </TouchableOpacity>
         </View>
       </View>

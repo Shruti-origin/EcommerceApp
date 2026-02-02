@@ -8,7 +8,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Heart } from 'lucide-react-native';
+import getLocalized from '../utils/localize';
 import CategoriesService from '../services/categoriesService';
 import ProductsService from '../services/productsService';
 import { guestWishlistUtils } from '../utils/wishlistUtils';
@@ -123,11 +125,12 @@ const CategoryProductsGrid: React.FC<{ title?: string; items?: ProductItem[]; ca
   const columns = 2;
   const gap = 2;
   const cardWidth = Math.floor((width - padding * 2 - gap * (columns - 1)) / columns);
+  const { t, i18n } = useTranslation();
 
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
   const [categoryProducts, setCategoryProducts] = useState<ProductItem[]>([]);
-  const [categoryTitle, setCategoryTitle] = useState(title || '');
+  const [categoryMeta, setCategoryMeta] = useState<Category | null>(null);
 
   // Accept either number or string ids and store keys as strings
   const toggleFavorite = (id: number | string) => {
@@ -179,7 +182,7 @@ const CategoryProductsGrid: React.FC<{ title?: string; items?: ProductItem[]; ca
     return {
       id: String(product.id),
       image: getProductImage(product),
-      title: product.name,
+      title: getLocalized(product, 'name'),
       price: `Rs ${finalPrice.toFixed(0)}`,
       badge: badge?.text,
       badgeColor: badge?.color,
@@ -189,9 +192,29 @@ const CategoryProductsGrid: React.FC<{ title?: string; items?: ProductItem[]; ca
 
   useEffect(() => {
     const fetchCategoryProducts = async () => {
-      if (items && items.length > 0) {
-        // Use provided items if available
-        setCategoryProducts(items);
+      // Normalize incoming `items` to an array safely. Some callers may pass an object with a `data` array,
+      // or a single object. This prevents runtime errors when calling `.map` on non-array values.
+      const itemsArray: any[] | null = Array.isArray(items)
+        ? items
+        : (items && Array.isArray((items as any).data) ? (items as any).data : null);
+
+      if (itemsArray && itemsArray.length > 0) {
+        // If items were passed in, try to re-run localization mapping when language changes.
+        // - If items contain `raw` (original product objects) we re-transform using current language
+        // - If items look like raw product objects (have a `name` field) we transform them too
+        // - Otherwise assume items are already ProductItem and leave as-is
+        const first = itemsArray[0];
+        if (first && first.raw) {
+          setCategoryProducts(itemsArray.map((it: ProductItem) => it.raw ? transformProduct(it.raw) : it));
+          return;
+        }
+        if (first && first.name && !first.title) {
+          // items are raw Product objects
+          setCategoryProducts(itemsArray.map((p: Product) => transformProduct(p)));
+          return;
+        }
+
+        setCategoryProducts(itemsArray as ProductItem[]);
         return;
       }
 
@@ -207,10 +230,10 @@ const CategoryProductsGrid: React.FC<{ title?: string; items?: ProductItem[]; ca
           // Try to find category metadata (to show nicer title) but still filter products even if metadata is missing
           const category = categoryTree.find((cat: Category) => cat.id === categoryId);
           if (category) {
-            setCategoryTitle(category.name);
+            setCategoryMeta(category);
           } else {
-            // Fallback title
-            setCategoryTitle(title || 'Products');
+            // No metadata; clear meta so we fall back to the provided title or translation at render
+            setCategoryMeta(null);
           }
 
           // Filter products that match the categoryId or fall under its children (if metadata found)
@@ -225,7 +248,7 @@ const CategoryProductsGrid: React.FC<{ title?: string; items?: ProductItem[]; ca
               categoryTree.flatMap((c: Category) => [c.id, ...(c.children?.map(ch => ch.id) || [])])
             );
             const uncategorized = allProducts.filter((p: Product) => !p.category || !knownCategoryIds.has(p.category.id));
-            setCategoryTitle('Featured Products');
+            setCategoryMeta({ id: 'featured' } as Category);
             setCategoryProducts(uncategorized.slice(0, 8).map(transformProduct));
           } else {
             setCategoryProducts(categoryProductList.slice(0, 8).map(transformProduct));
@@ -250,7 +273,7 @@ const CategoryProductsGrid: React.FC<{ title?: string; items?: ProductItem[]; ca
 
           // Use first category with products
           if (grouped.length > 0) {
-            setCategoryTitle(grouped[0].category.name);
+            setCategoryMeta(grouped[0].category);
             setCategoryProducts(grouped[0].products.map(transformProduct));
           }
         }
@@ -263,7 +286,7 @@ const CategoryProductsGrid: React.FC<{ title?: string; items?: ProductItem[]; ca
     };
 
     fetchCategoryProducts();
-  }, [categoryId]);
+  }, [categoryId, i18n.language]);
 
   const displayItems = items || categoryProducts;
 
@@ -279,12 +302,14 @@ const CategoryProductsGrid: React.FC<{ title?: string; items?: ProductItem[]; ca
     return null;
   }
 
+  const displayTitle = title || (categoryMeta?.id === 'featured' ? t('categories.featuredProducts') : (categoryMeta ? getLocalized(categoryMeta, 'name') : t('categories.products')));
+
   return (
     <View style={styles.section}>
       <View style={styles.headerRow}>
-        <Text style={styles.heading}>{categoryTitle}</Text>
-        <TouchableOpacity activeOpacity={0.7} onPress={() => navigate?.('CategoryProducts', { categoryId, title: categoryTitle, items: categoryProducts })} style={styles.seeMoreBtn}>
-          <Text style={styles.seeMore}>See More</Text>
+        <Text style={styles.heading}>{displayTitle}</Text>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => navigate?.('CategoryProducts', { categoryId, categoryMeta, items: categoryProducts })} style={styles.seeMoreBtn}>
+          <Text style={styles.seeMore}>{t('categories.viewAll')}</Text>
           <Text style={styles.seeMoreArrow}>›</Text>
         </TouchableOpacity>
       </View> 
@@ -426,6 +451,7 @@ const styles = StyleSheet.create({
 export const CategorySections: React.FC<{ navigate?: (screen: string, params?: any) => void }> = ({ navigate }) => {
   const [categoryGroups, setCategoryGroups] = useState<{ category: Category; products: Product[] }[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useTranslation();
 
   useEffect(() => {
     const fetchAllCategories = async () => {
@@ -523,6 +549,7 @@ export const CategorySections: React.FC<{ navigate?: (screen: string, params?: a
         <CategoryProductsGrid
           key={category.id}
           categoryId={category.id}
+          title={category.id === 'featured' ? t('categories.featuredProducts') : getLocalized(category, 'name')}
           navigate={navigate}
         />
       ))}

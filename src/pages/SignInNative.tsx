@@ -77,7 +77,7 @@ const SignInNative = ({ navigate, goBack }: { navigate?: (name: string, params?:
 
       {/* Skip top-right */}
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => navigate?.('Hello')}>
+        <TouchableOpacity onPress={() => navigate?.('Home')}>
           <Text style={styles.skipText}>Skips</Text>
         </TouchableOpacity>
       </View>

@@ -1,4 +1,5 @@
 import apiClient  from './apiClient';
+import i18n from '../i18n';
 
 // Categories service for managing category-related API calls
 export class CategoriesService {
@@ -18,8 +19,10 @@ export class CategoriesService {
   // Get all categories (flat list)
   static async getAllCategories(includeInactive = false) {
     try {
+      const lang = i18n?.language;
       const response = await apiClient.get('/categories', { 
-        includeInactive: includeInactive.toString() 
+        includeInactive: includeInactive.toString(),
+        lang: lang
       });
       return response;
     } catch (error) {
@@ -32,7 +35,8 @@ export class CategoriesService {
   // Get category tree structure (hierarchical)
   static async getCategoryTree() {
     try {
-      const response = await apiClient.get('/categories/tree');
+      const lang = i18n?.language;
+      const response = await apiClient.get('/categories/tree', { lang });
       return response;
     } catch (error) {
       console.error('Failed to fetch category tree:', error);

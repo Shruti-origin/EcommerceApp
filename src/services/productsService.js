@@ -1,4 +1,5 @@
 import apiClient  from './apiClient';
+import i18n from '../i18n';
 
 // Products service for managing product-related API calls
 export class ProductsService {
@@ -6,7 +7,9 @@ export class ProductsService {
   // Get all active products for public catalog
   static async getProductCatalog(params = {}) {
     try {
-      const response = await apiClient.get('/products/catalog', params);
+      const lang = i18n?.language;
+      const requestParams = { ...(params || {}), lang: params.lang || lang };
+      const response = await apiClient.get('/products/catalog', requestParams);
       return response;
     } catch (error) {
       console.error('Failed to fetch product catalog:', error);
@@ -17,10 +20,9 @@ export class ProductsService {
   // Get products by category
   static async getProductsByCategory(categoryId, params = {}) {
     try {
-      const response = await apiClient.get('/products/catalog', {
-        ...params,
-        categoryId
-      });
+      const lang = i18n?.language;
+      const requestParams = { ...(params || {}), categoryId, lang: params.lang || lang };
+      const response = await apiClient.get('/products/catalog', requestParams);
       return response;
     } catch (error) {
       console.error(`Failed to fetch products for category ${categoryId}:`, error);

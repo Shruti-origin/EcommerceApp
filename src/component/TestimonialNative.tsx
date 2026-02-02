@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   NativeScrollEvent,
   ImageBackground,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 interface TestimonialItem {
   id: number;
@@ -20,14 +21,19 @@ interface TestimonialItem {
   comment: string;
 }
 
+const ARROW_VERTICAL_ADJUST = 3; // tweak this value (negative => move arrows up, positive => move down) — increased to move arrows down
+
 const TestimonialNative: React.FC = () => {
   const screenWidth = Dimensions.get('window').width;
   const isLargeScreen = screenWidth >= 1024;
   const isMediumScreen = screenWidth >= 768;
   
   const CARD_WIDTH = isLargeScreen ? 400 : isMediumScreen ? 360 : 320;
-  const GAP = 32;
+  const GAP = 45;
   const TOTAL_WIDTH = CARD_WIDTH + GAP;
+
+  // side padding so a single card is centered between the left/right arrows
+  const sidePadding = Math.max(0, (screenWidth - CARD_WIDTH) / 2);
 
   const testimonials: TestimonialItem[] = [
     {
@@ -79,6 +85,13 @@ const TestimonialNative: React.FC = () => {
     setIndex(newIndex);
   };
 
+  // Ensure the ScrollView is positioned so that the current index is centered
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ x: index * TOTAL_WIDTH, animated: false });
+  }, [index, sidePadding]);
+
+  const { t } = useTranslation();
+
   return (
     <ImageBackground
       source={require('../../assets/test-bg.png')}
@@ -88,27 +101,21 @@ const TestimonialNative: React.FC = () => {
     >
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>What People Are Saying</Text>
-        <Text style={styles.subtitle}>
-          We provide support for more than 15K+ Businesses.
-        </Text>
+        <Text style={styles.title}>{t('testimonial.title')}</Text>
+        <Text style={styles.subtitle}>{t('testimonial.subtitle')}</Text>
       </View>
 
       {/* Carousel Wrapper */}
       <View style={styles.carouselWrap}>
-        {/* Left Arrow - Mobile only */}
-        {!isLargeScreen && (
-          <TouchableOpacity style={styles.arrowLeft} onPress={scrollLeft}>
-            <Text style={styles.arrowText}>‹</Text>
-          </TouchableOpacity>
-        )}
+        {/* Left Arrow */}
+        <TouchableOpacity style={[styles.arrowLeft, index === 0 ? { opacity: 0.45 } : { opacity: 1 }]} onPress={scrollLeft} disabled={index === 0} accessibilityLabel="Previous testimonial">
+          <Text style={styles.arrowText}>‹</Text>
+        </TouchableOpacity>
 
-        {/* Right Arrow - Mobile only */}
-        {!isLargeScreen && (
-          <TouchableOpacity style={styles.arrowRight} onPress={scrollRight}>
-            <Text style={styles.arrowText}>›</Text>
-          </TouchableOpacity>
-        )}
+        {/* Right Arrow */}
+        <TouchableOpacity style={[styles.arrowRight, index === testimonials.length - 1 ? { opacity: 0.45 } : { opacity: 1 }]} onPress={scrollRight} disabled={index === testimonials.length - 1} accessibilityLabel="Next testimonial">
+          <Text style={styles.arrowText}>›</Text>
+        </TouchableOpacity>
 
         {/* Cards */}
         <ScrollView
@@ -116,10 +123,11 @@ const TestimonialNative: React.FC = () => {
           horizontal
           showsHorizontalScrollIndicator={false}
           snapToInterval={TOTAL_WIDTH}
+          snapToAlignment="center"
           decelerationRate="fast"
           onMomentumScrollEnd={onMomentumScrollEnd}
           contentContainerStyle={{
-            paddingHorizontal: 28,
+            paddingHorizontal: sidePadding,
           }}
         >
           {testimonials.map((item) => (
@@ -147,11 +155,12 @@ const TestimonialNative: React.FC = () => {
         </ScrollView>
       </View>
 
-      {/* Dots Indicator - Desktop only */}
+      {/* Dots Indicator (desktop) */}
       {isLargeScreen && (
         <View style={styles.dots}>
-          <View style={[styles.dot, styles.activeDot]} />
-          <View style={styles.dot} />
+          {testimonials.map((_, i) => (
+            <View key={i} style={[styles.dot, i === index ? styles.activeDot : null]} />
+          ))}
         </View>
       )}
     </ImageBackground>
@@ -163,7 +172,7 @@ const styles = StyleSheet.create({
     marginTop: -60,
     // ensure the background has space to render
     minHeight: 420,
-    paddingVertical: 80,
+    paddingVertical: 30,
     // backgroundColor: '#FFF5F5',
     overflow: 'hidden',
   },
@@ -185,9 +194,10 @@ const styles = StyleSheet.create({
   },
   carouselWrap: {
     position: 'relative',
-    maxWidth: 1152,
+    maxWidth: 1150,
     alignSelf: 'center',
     width: '100%',
+    paddingVertical: -10,
   },
   arrowLeft: {
     position: 'absolute',
@@ -195,8 +205,9 @@ const styles = StyleSheet.create({
     top: '50%',
     zIndex: 20,
     backgroundColor: '#fff',
-    width: 36,
-    height: 36,
+    width: 30,
+    height: 30,
+
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
@@ -205,11 +216,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 4,
-    transform: [{ translateY: -18 }],
+    transform: [{ translateY: -18 + ARROW_VERTICAL_ADJUST }],
   },
   arrowRight: {
     position: 'absolute',
-    right: 8,
+    right: 4,
     top: '50%',
     zIndex: 20,
     backgroundColor: '#fff',
@@ -223,7 +234,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 4,
-    transform: [{ translateY: -18 }],
+    transform: [{ translateY: -18 + ARROW_VERTICAL_ADJUST }],
   },
   arrowText: {
     color: '#111827',
@@ -241,7 +252,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 3,
     elevation: 2,
-    marginTop: 20,
+    marginTop: 10,
   },
   avatarRow: {
     flexDirection: 'row',

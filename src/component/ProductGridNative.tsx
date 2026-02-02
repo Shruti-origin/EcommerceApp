@@ -9,7 +9,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import CategoriesService from '../services/categoriesService';
+import getLocalized from '../utils/localize';
 
 const SCREEN_WIDTH = Dimensions.get('window').width; // full device width for full-bleed elements
 
@@ -61,6 +63,7 @@ const GradientBar: React.FC = () => {
 
 const ProductGridNative: React.FC = () => {
   const { width } = useWindowDimensions();
+  const { t, i18n } = useTranslation();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -83,7 +86,7 @@ const ProductGridNative: React.FC = () => {
     };
 
     fetchCategories();
-  }, []);
+  }, [i18n.language]);
 
   // Get category image (React Native version)
   const getCategoryImage = (category: Category): any => {
@@ -110,8 +113,8 @@ const ProductGridNative: React.FC = () => {
     <View style={styles.section}>
       <GradientBar />
       <View style={styles.container}>
-        <Text style={styles.heading}>Cloth's of Every Style</Text>
-        <Text style={styles.subheading}>What's more, we do it right!</Text>
+        <Text style={styles.heading}>{t('productGrid.heading')}</Text>
+        <Text style={styles.subheading}>{t('productGrid.subheading')}</Text>
 
         {loading ? (
           <View style={{ paddingVertical: 48, alignItems: 'center' }}>
@@ -134,7 +137,7 @@ const ProductGridNative: React.FC = () => {
                     source={getCategoryImage(category)} 
                     style={[styles.avatar, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]} 
                   />
-                  <Text style={styles.title} numberOfLines={1}>{category.name}</Text>
+                  <Text style={styles.title} numberOfLines={1}>{getLocalized(category, 'name')}</Text>
                 </TouchableOpacity>
               );
             })}

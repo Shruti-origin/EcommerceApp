@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions, ActivityIn
 import { Heart, ArrowUpDown } from 'lucide-react-native';
 import { productService } from '../services/api';
 import { guestWishlistUtils } from '../utils/wishlistUtils';
+import { useTranslation } from 'react-i18next';
+import getLocalized from '../utils/localize';
 
 
 interface PrintingProduct {
@@ -41,6 +43,7 @@ const GradientHeading: React.FC<{children: React.ReactNode}> = ({ children }) =>
 };
 
 const OffsetPrinting: React.FC<{ navigate?: (screen: string, params?: any) => void }> = ({ navigate }) => {
+  const { t } = useTranslation();
   const screenWidth = Dimensions.get('window').width;
   const numColumns = screenWidth >= 900 ? 4 : screenWidth >= 600 ? 3 : 2;
 
@@ -92,20 +95,20 @@ const OffsetPrinting: React.FC<{ navigate?: (screen: string, params?: any) => vo
                 image: productImage
                   ? { uri: `https://backend.originplatforms.co${productImage}` }
                   : require('../../assets/s-h1.png'),
-                title: p.name || 'Product',
+                title: getLocalized(p, 'name') || p.name || 'Product',
                 price: p.price ? `Rs ${p.price}` : 'Rs 0',
                 images: p.images,
-              };
+              }; 
             })
           : [];
 
         if (mappedProducts.length === 0) {
           // final static fallback
           setPrintingProducts([
-            { id: '1', image: require('../../assets/s-h1.png'), title: 'Zone Sweatshirt', price: '$25.99' },
-            { id: '2', image: require('../../assets/s-h2.png'), title: "Zoo Men's t-shirt", price: '$15.99' },
-            { id: '3', image: require('../../assets/s-h3.png'), title: 'Toddler T-shirt', price: '$12.99' },
-            { id: '4', image: require('../../assets/s-h4.png'), title: 'Fine Jersey Tee', price: '$18.99' },
+            { id: '1', image: require('../../assets/s-h1.png'), title: t('offsetPrinting.fallback.1'), price: '$25.99' },
+            { id: '2', image: require('../../assets/s-h2.png'), title: t('offsetPrinting.fallback.2'), price: '$15.99' },
+            { id: '3', image: require('../../assets/s-h3.png'), title: t('offsetPrinting.fallback.3'), price: '$12.99' },
+            { id: '4', image: require('../../assets/s-h4.png'), title: t('offsetPrinting.fallback.4'), price: '$18.99' },
           ]);
         } else {
           setPrintingProducts(mappedProducts.slice(0, 8)); // Show first 8 products
@@ -115,10 +118,10 @@ const OffsetPrinting: React.FC<{ navigate?: (screen: string, params?: any) => vo
         console.error('Failed to fetch products:', error);
         // Fallback to static products if API fails
         setPrintingProducts([
-          { id: '1', image: require('../../assets/s-h1.png'), title: 'Zone Sweatshirt', price: '$25.99' },
-          { id: '2', image: require('../../assets/s-h2.png'), title: "Zoo Men's t-shirt", price: '$15.99' },
-          { id: '3', image: require('../../assets/s-h3.png'), title: 'Toddler T-shirt', price: '$12.99' },
-          { id: '4', image: require('../../assets/s-h4.png'), title: 'Fine Jersey Tee', price: '$18.99' },
+          { id: '1', image: require('../../assets/s-h1.png'), title: t('offsetPrinting.fallback.1'), price: '$25.99' },
+          { id: '2', image: require('../../assets/s-h2.png'), title: t('offsetPrinting.fallback.2'), price: '$15.99' },
+          { id: '3', image: require('../../assets/s-h3.png'), title: t('offsetPrinting.fallback.3'), price: '$12.99' },
+          { id: '4', image: require('../../assets/s-h4.png'), title: t('offsetPrinting.fallback.4'), price: '$18.99' },
         ]);
       } finally {
         setLoading(false);
@@ -168,13 +171,13 @@ const OffsetPrinting: React.FC<{ navigate?: (screen: string, params?: any) => vo
     <View style={styles.section}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <GradientHeading>HIGH-QUALITY OFFSET PRINTING</GradientHeading>
+          <GradientHeading>{t('offsetPrinting.heading')}</GradientHeading>
           <View style={styles.headerRow}>
-            <Text style={styles.subheading}>All Featured</Text>
+            <Text style={styles.subheading}>{t('offsetPrinting.subheading')}</Text>
             <View style={styles.toolbar}>
               <TouchableOpacity style={styles.toolBtn} onPress={() => console.log('sort')}>
                 <View style={styles.toolBtnContent}>
-                  <Text style={styles.toolText}>Sort</Text>
+                  <Text style={styles.toolText}>{t('offsetPrinting.sort')}</Text>
                   <View style={styles.sortIcons}>
                     <Heart size={14} color="#483028" />
                   </View>
@@ -182,7 +185,7 @@ const OffsetPrinting: React.FC<{ navigate?: (screen: string, params?: any) => vo
               </TouchableOpacity>
               <TouchableOpacity style={styles.toolBtn} onPress={() => console.log('filter')}>
                 <View style={styles.toolBtnContent}>
-                  <Text style={styles.toolText}>Filter</Text>
+                  <Text style={styles.toolText}>{t('offsetPrinting.filter')}</Text>
                   <ArrowUpDown size={16} color="#483028" style={{ marginLeft: 8 }} />
                 </View>
               </TouchableOpacity>

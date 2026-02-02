@@ -6,8 +6,10 @@ import ProductsService from '../services/productsService';
 
 const placeholder = require('../../assets/s-h1.png');
 
-const CategoryProducts = ({ categoryId, title, navigate, goBack, items }: { categoryId?: string; title?: string; navigate?: (s: string, p?: any) => void; goBack?: () => void; items?: any[] }) => {
-  const { t } = useTranslation();
+import getLocalized from '../utils/localize';
+
+const CategoryProducts = ({ categoryId, title, categoryMeta, navigate, goBack, items }: { categoryId?: string; title?: string; categoryMeta?: any; navigate?: (s: string, p?: any) => void; goBack?: () => void; items?: any[] }) => {
+  const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState<boolean>(false);
   const [products, setProducts] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +41,7 @@ const CategoryProducts = ({ categoryId, title, navigate, goBack, items }: { cate
     };
 
     fetch();
-  }, [categoryId, items]);
+  }, [categoryId, items, i18n.language]);
 
   const renderItem = ({ item }: { item: any }) => {
     // Support both API product shape and ProductItem shape passed from grid
@@ -47,8 +49,9 @@ const CategoryProducts = ({ categoryId, title, navigate, goBack, items }: { cate
       ? { uri: `https://backend.originplatforms.co${item.images[0]}` }
       : (item.image && (typeof item.image === 'number' ? item.image : (item.image.uri ? item.image : (typeof item.image === 'string' ? { uri: item.image } : null)))) || placeholder;
 
-    const titleText = item.name || item.title || item.productName || 'Product';
-    const priceText = (item.price && (typeof item.price === 'string' ? item.price : `Rs ${item.price}`)) || 'Rs 0';
+    // If the item is a raw product object, use getLocalized to compute title on current language
+    const titleText = item.raw ? getLocalized(item.raw, 'name') : (item.name || item.title || item.productName || 'Product');
+    const priceText = item.raw ? (`Rs ${Math.round(parseFloat(item.raw.price || '0'))}`) : ((item.price && (typeof item.price === 'string' ? item.price : `Rs ${item.price}`)) || 'Rs 0');
 
     return (
       <TouchableOpacity style={styles.row} activeOpacity={0.8} onPress={() => navigate?.('ProductDetails', { product: item.raw || item })}>
@@ -68,7 +71,7 @@ const CategoryProducts = ({ categoryId, title, navigate, goBack, items }: { cate
         <TouchableOpacity onPress={() => goBack ? goBack() : navigate?.('Home')} style={styles.backBtn}>
           <ChevronLeft size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{title || t('categories.products')}</Text>
+        <Text style={styles.headerTitle}>{categoryMeta ? getLocalized(categoryMeta, 'name') : (title || t('categories.products'))}</Text>
       </View>
 
       <View style={styles.container}>

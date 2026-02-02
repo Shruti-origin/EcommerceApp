@@ -87,7 +87,7 @@ const Deals = ({ navigate }: { navigate?: (screen: string, params?: any) => void
   const [filterVisible, setFilterVisible] = useState(false);
 
   // Selected values
-  const [sortSelected, setSortSelected] = useState('Relevance');
+  const [sortSelected, setSortSelected] = useState('relevance');
   const [categoriesSelected, setCategoriesSelected] = useState<string[]>(['Saree', 'Lehenga Choli']);
   const [agesSelected, setAgesSelected] = useState<string[]>(['0-5 Yrs (Infants & Toddlers)']);
 
@@ -131,9 +131,9 @@ const Deals = ({ navigate }: { navigate?: (screen: string, params?: any) => void
             {/* Promo Header */}
             <View style={styles.promoWrap}>
               <View style={styles.promoLeft}>
-                <Text style={styles.promoLabel}>SPECIAL OFFER</Text>
-                <Text style={styles.promoTitle}>Extra Sale 30% off</Text>
-                <Text style={styles.promoSub}>Bucket toy with a contrast colored handle. Perfect for playing on the beach.</Text>
+                <Text style={styles.promoLabel}>{t('deals.promoLabel')}</Text>
+                <Text style={styles.promoTitle}>{t('deals.promoTitle')}</Text>
+                <Text style={styles.promoSub}>{t('deals.promoSub')}</Text>
 
                 <View style={styles.timerRow}>
                   <Text style={styles.timer}>00</Text>
@@ -145,7 +145,7 @@ const Deals = ({ navigate }: { navigate?: (screen: string, params?: any) => void
 
                 <TouchableOpacity style={styles.getBtn} onPress={() => console.log('get offer')}>
                   <View style={styles.getBtnContent}>
-                    <Text style={styles.getBtnText}>Get only Rs. 599</Text>
+                    <Text style={styles.getBtnText}>{t('deals.getOffer', { price: '599' })}</Text>
                     <ArrowRight size={16} color="#fff" style={{ marginLeft: 8 }} />
                   </View>
                 </TouchableOpacity>
@@ -168,14 +168,14 @@ const Deals = ({ navigate }: { navigate?: (screen: string, params?: any) => void
                 activeOpacity={0.6}
               > 
                 <ArrowUpDown size={16} color="#111827" style={{ marginRight: 6 }} />
-                <Text style={styles.toolText}>Sort</Text>
+                <Text style={styles.toolText}>{t('deals.sort')}</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.tool} 
                 onPress={() => setCategoryVisible(true)}
                 activeOpacity={0.6}
               > 
-                <Text style={styles.toolText}>Category</Text>
+                <Text style={styles.toolText}>{t('deals.category')}</Text>
                 <ChevronDown size={14} color="#111827" style={{ marginLeft: 6 }} />
               </TouchableOpacity>
               <TouchableOpacity 
@@ -183,7 +183,7 @@ const Deals = ({ navigate }: { navigate?: (screen: string, params?: any) => void
                 onPress={() => setAgeVisible(true)}
                 activeOpacity={0.6}
               > 
-                <Text style={styles.toolText}>Age</Text>
+                <Text style={styles.toolText}>{t('deals.age')}</Text>
                 <ChevronDown size={14} color="#111827" style={{ marginLeft: 6 }} />
               </TouchableOpacity>
               <TouchableOpacity 
@@ -192,16 +192,16 @@ const Deals = ({ navigate }: { navigate?: (screen: string, params?: any) => void
                 activeOpacity={0.6}
               > 
                 <Funnel size={14} color="#111827" style={{ marginRight: 6 }} />
-                <Text style={styles.toolText}>Filter</Text>
+                <Text style={styles.toolText}>{t('deals.filter')}</Text>
               </TouchableOpacity>
             </View>
 
             {/* Ghagra Section (copied from CategoryProductsGrid) */}
             <View style={styles.section}>
               <View style={styles.headerRow}>
-                <Text style={styles.heading}>Ghagra</Text>
+                <Text style={styles.heading}>{t('deals.sectionGhagra')}</Text>
                 <TouchableOpacity activeOpacity={0.7} onPress={() => console.log('see more', 'Ghagra')} style={styles.seeMoreBtn}>
-                  <Text style={styles.seeMore}>See More</Text>
+                  <Text style={styles.seeMore}>{t('categories.viewAll')}</Text>
                   <Text style={styles.seeMoreArrow}>›</Text>
                 </TouchableOpacity>
               </View>
@@ -216,25 +216,25 @@ const Deals = ({ navigate }: { navigate?: (screen: string, params?: any) => void
         <View style={styles.bottomSheet}>
           <View style={styles.sheetHandle} />
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Sort</Text>
+            <Text style={styles.modalTitle}>{t('deals.sort')}</Text>
             <TouchableOpacity onPress={() => setSortVisible(false)}>
               <Text style={styles.modalClose}>✕</Text>
             </TouchableOpacity>
           </View>
           <ScrollView style={styles.modalBody}>
-            {['Relevance', 'New Arrivals', 'Price(High To Low)', 'Price (Low To High)', 'Rating', 'Discount'].map((option) => (
+            {['relevance','newArrivals','priceHighToLow','priceLowToHigh','rating','discount'].map((key) => (
               <TouchableOpacity
-                key={option}
+                key={key}
                 style={styles.optionRow}
                 onPress={() => {
-                  setSortSelected(option);
+                  setSortSelected(key);
                   setSortVisible(false);
                 }}
               >
-                <View style={[styles.radioOuter, sortSelected === option && styles.radioOuterActive]}>
-                  {sortSelected === option && <View style={styles.radioInner} />}
+                <View style={[styles.radioOuter, sortSelected === key && styles.radioOuterActive]}>
+                  {sortSelected === key && <View style={styles.radioInner} />}
                 </View>
-                <Text style={styles.optionText}>{option}</Text>
+                <Text style={styles.optionText}>{t(`deals.sortOptions.${key}`)}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -247,7 +247,7 @@ const Deals = ({ navigate }: { navigate?: (screen: string, params?: any) => void
         <View style={styles.bottomSheet}>
           <View style={styles.sheetHandle} />
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Category</Text>
+            <Text style={styles.modalTitle}>{t('deals.category')}</Text>
             <TouchableOpacity onPress={() => setCategoryVisible(false)}>
               <Text style={styles.modalClose}>✕</Text>
             </TouchableOpacity>
@@ -272,7 +272,7 @@ const Deals = ({ navigate }: { navigate?: (screen: string, params?: any) => void
           </ScrollView>
           <View style={styles.sheetFooter}>
             <TouchableOpacity style={styles.applyBtn} onPress={() => setCategoryVisible(false)}>
-              <Text style={styles.applyBtnText}>Done</Text>
+              <Text style={styles.applyBtnText}>{t('common.done')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -284,7 +284,7 @@ const Deals = ({ navigate }: { navigate?: (screen: string, params?: any) => void
         <View style={styles.bottomSheet}>
           <View style={styles.sheetHandle} />
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Age</Text>
+            <Text style={styles.modalTitle}>{t('deals.age')}</Text>
             <TouchableOpacity onPress={() => setAgeVisible(false)}>
               <Text style={styles.modalClose}>✕</Text>
             </TouchableOpacity>
@@ -309,7 +309,7 @@ const Deals = ({ navigate }: { navigate?: (screen: string, params?: any) => void
           </ScrollView>
           <View style={styles.sheetFooter}>
             <TouchableOpacity style={styles.applyBtn} onPress={() => setAgeVisible(false)}>
-              <Text style={styles.applyBtnText}>Apply</Text>
+              <Text style={styles.applyBtnText}>{t('common.apply')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -321,7 +321,7 @@ const Deals = ({ navigate }: { navigate?: (screen: string, params?: any) => void
         <View style={styles.bottomSheet}>
           <View style={styles.sheetHandle} />
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Filters</Text>
+            <Text style={styles.modalTitle}>{t('deals.filter')}</Text>
             <TouchableOpacity onPress={() => setFilterVisible(false)}>
               <Text style={styles.modalClose}>✕</Text>
             </TouchableOpacity>
@@ -333,7 +333,7 @@ const Deals = ({ navigate }: { navigate?: (screen: string, params?: any) => void
           </ScrollView>
           <View style={styles.sheetFooter}>
             <TouchableOpacity style={styles.applyBtn} onPress={() => setFilterVisible(false)}>
-              <Text style={styles.applyBtnText}>Apply</Text>
+              <Text style={styles.applyBtnText}>{t('common.apply')}</Text>
             </TouchableOpacity>
           </View>
         </View>

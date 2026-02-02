@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import i18n from '../i18n';
 
 // API configuration and base URL
 const API_BASE_URL =  'https://backend.originplatforms.co';
@@ -24,6 +25,16 @@ class ApiClient {
       ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...(typeof options.headers === 'object' && options.headers ? (options.headers as Record<string, string>) : {}),
     };
+
+    // Add Accept-Language header so backend can return localized strings when available
+    try {
+      const langFromI18n = i18n?.language;
+      const langFromStorage = await AsyncStorage.getItem('appLanguage');
+      const lang = (langFromI18n || langFromStorage || 'en');
+      extraHeaders['Accept-Language'] = lang;
+    } catch (e) {
+      // ignore errors and continue without lang header
+    }
 
     const config: RequestInit = {
       ...options,

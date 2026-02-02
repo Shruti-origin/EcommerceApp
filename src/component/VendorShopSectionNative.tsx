@@ -1,27 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { StyleSheet } from 'react-native';
+import VendorProductsFilterNative from './VendorProductsFilterNative';
 
 const VendorShopSectionNative: React.FC<{ vendorId?: string | null; vendorName?: string; navigate?: (name: string, params?: any) => void; goBack?: () => void }> = ({ vendorId, vendorName, navigate, goBack }) => {
+  // Delegate vendor product listing and filtering to VendorProductsFilterNative
   return (
-    <View style={styles.container}>
-      <View style={styles.message}>
-        <Text style={styles.heading}>{vendorName || 'Vendor'}</Text>
-        <Text style={styles.subtitle}>This vendor products view has been removed.</Text>
-        <TouchableOpacity onPress={() => goBack?.()} style={styles.backBtn}>
-          <Text style={styles.backText}>Go Back</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+    <VendorProductsFilterNative vendorId={vendorId} vendorName={vendorName} navigate={navigate} goBack={goBack} />
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  message: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 },
-  heading: { fontSize: 20, fontWeight: '700', marginBottom: 8 },
-  subtitle: { color: '#6B7280', marginBottom: 16, textAlign: 'center' },
-  backBtn: { backgroundColor: '#10B981', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8 },
-  backText: { color: '#fff', fontWeight: '700' }
-});
+const styles = StyleSheet.create({});
 
 export default VendorShopSectionNative;

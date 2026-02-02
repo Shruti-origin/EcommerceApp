@@ -10,6 +10,7 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 interface Product {
   vendor: string;
@@ -50,13 +51,21 @@ const BestSelling: React.FC<{ navigate?: (screen: string, params?: any) => void 
     },
   ];
 
-  const cardWidth = 220; // matches web maxWidth
-  const gap = 16;
-  const scrollDistance = Math.round((screenWidth ?? 300) * 0.8);
+  const CARD_WIDTH = 180; // large card to match design
+  const GAP = 12;
+  const ITEM_TOTAL = CARD_WIDTH + GAP;
+  const scrollDistance = ITEM_TOTAL; // scroll 1 card at a time
+  const CONTAINER_WIDTH = CARD_WIDTH * 2 + GAP;
+  const MAX_SCROLL = Math.max(0, products.length * ITEM_TOTAL - CONTAINER_WIDTH);
+  const { t } = useTranslation();
 
   const scrollBy = (distance: number) => {
     if (!scrollRef.current) return;
-    scrollRef.current.scrollTo({x: scrollX + distance, animated: true});
+    // Compute aligned position so we always land on item boundaries (prevents leftover padding)
+    const nextX = scrollX + distance;
+    let alignedX = Math.max(0, Math.round(nextX / ITEM_TOTAL) * ITEM_TOTAL);
+    alignedX = Math.min(alignedX, MAX_SCROLL);
+    scrollRef.current.scrollTo({ x: alignedX, animated: true });
   };
 
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -83,7 +92,7 @@ const BestSelling: React.FC<{ navigate?: (screen: string, params?: any) => void 
       </View>
 
       <View style={styles.inner}>
-        <Text style={styles.title}>Best Selling Product</Text>
+        <Text style={styles.title}>{t('home.bestSelling')}</Text>
 
         <View style={styles.sliderWrapper}>
           <TouchableOpacity
@@ -94,18 +103,22 @@ const BestSelling: React.FC<{ navigate?: (screen: string, params?: any) => void 
             <Text style={styles.arrowText}>{'<'}</Text>
           </TouchableOpacity>
 
-          <ScrollView
-            horizontal
-            ref={scrollRef}
-            onScroll={onScroll}
-            scrollEventThrottle={16}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
-          >
+          <View style={[styles.cardContainer, { width: CONTAINER_WIDTH }]}> 
+            <ScrollView
+              horizontal
+              ref={scrollRef}
+              onScroll={onScroll}
+              scrollEventThrottle={16}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={[styles.scrollContent, { paddingRight: 16 }]}
+              snapToInterval={ITEM_TOTAL} // snap by single item to keep alignment
+              decelerationRate="fast"
+              snapToAlignment="start"
+            >
             {products.map((item, index) => (
               <TouchableOpacity
               key={index}
-              style={[styles.card, {marginRight: gap}]}
+              style={[styles.card, { width: CARD_WIDTH, marginRight: GAP }]}
               activeOpacity={0.9}
               onPress={() => {
                 console.log('[BestSelling] card press', item);
@@ -117,17 +130,22 @@ const BestSelling: React.FC<{ navigate?: (screen: string, params?: any) => void 
                 </View>
 
                 <View style={styles.cardBody}>
-                  <Text style={styles.vendor}>{item.vendor}</Text>
-                  <Text style={styles.titleCard}>{item.title}</Text>
-
-                  <View style={styles.starsRow}>
-                    {Array.from({length: 5}).map((_, i) => (
-                      <Text key={i} style={styles.star}>★</Text>
-                    ))}
+                  <View style={styles.vendorRow}>
+                    <Text style={styles.vendor}>{item.vendor}</Text>
+                    <View style={styles.starsRow}>
+                      {Array.from({length: 5}).map((_, i) => (
+                        <Text key={i} style={styles.star}>★</Text>
+                      ))}
+                    </View>
                   </View>
 
+                  <Text style={styles.titleCard}>{item.title}</Text>
+
                   <View style={styles.cardFooter}>
-                    <Text style={styles.price}>Rs {item.price}</Text>
+                    <Text style={styles.price}>
+                      <Text style={styles.currency}>Rs</Text>
+                      <Text style={styles.amount}> {item.price}</Text>
+                    </Text>
                     <View style={styles.plusBtn}>
                       <Text style={styles.plusText}>+</Text>
                     </View>
@@ -136,7 +154,7 @@ const BestSelling: React.FC<{ navigate?: (screen: string, params?: any) => void 
             </TouchableOpacity>
             ))}
           </ScrollView>
-
+          </View>
           <TouchableOpacity
             onPress={() => scrollBy(scrollDistance)}
             style={[styles.arrowButton, styles.rightArrow]}
@@ -148,7 +166,7 @@ const BestSelling: React.FC<{ navigate?: (screen: string, params?: any) => void 
 
         <View style={styles.viewAllWrap}>
           <TouchableOpacity>
-            <Text style={styles.viewAllText}>View All →</Text>
+            <Text style={styles.viewAllText}>{t('home.viewAll')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -181,13 +199,19 @@ const styles = StyleSheet.create({
     position: 'relative',
     alignItems: 'center',
   },
+  cardContainer: {
+    width: 340, // fallback width; actual width is set inline via CONTAINER_WIDTH
+    alignSelf: 'center',
+    overflow: 'visible',
+
+  },
   scrollContent: {
     paddingVertical: 8,
-    paddingHorizontal: 8,
+    paddingLeft: 4, // reduced left padding
+    paddingRight: 8,
     alignItems: 'center',
   },
   card: {
-    width: 170,
     backgroundColor: '#fff',
     borderRadius: 20,
     shadowColor: '#000',
@@ -198,7 +222,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   imageWrap: {
-    height: 120,
+    height: 150,
     backgroundColor: '#efaaac',
     justifyContent: 'center',
     alignItems: 'center',
@@ -206,81 +230,111 @@ const styles = StyleSheet.create({
   },
   productImage: {
     width: '100%',
-    height: 200, // double container height so we can shift it up to show the top half
+    height: 220,
     resizeMode: 'cover',
-    transform: [{ translateY: 40 }],
+    transform: [{ translateY: 30   }],
   },
   cardBody: {
-    padding: 10,
+    padding: 8,
+    paddingBottom: 8,
+    position: 'relative',
   },
-  vendor: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginBottom: 4,
-  },
-  titleCard: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 6,
-  },
-  starsRow: {
-    flexDirection: 'row',
-    marginBottom: 10,
-  },
-  star: {
-    color: '#F6B76F',
-    marginRight: 2,
-  },
-  cardFooter: {
+  vendorRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 4,
+  },
+  vendor: {
+    fontSize: 11,
+    color: '#9CA3AF',
+  },
+  titleCard: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 6,
+    color: '#0B2540',
+  },
+  starsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  star: {
+    color: '#F6B76F',
+    marginLeft: 2,
+    fontSize: 8,
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: 8,
   },
   price: {
-    fontWeight: '700',
+    marginRight: 12,
+    marginTop:-5,
+    color: '#0B2540',
+  },
+  currency: {
     fontSize: 14,
+    fontWeight: '600',
+    color: '#000000',
+  },
+  amount: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#000000',
   },
   plusBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    position: 'absolute',
+    right: 12,
+    bottom: -10,
+    width: 30,
+    height: 30,
+    top: -15,
+    borderRadius: 22,
     backgroundColor: '#10B981',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 3,
+    elevation: 4,
   },
   plusText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 16,
+    fontSize: 20,
   },
   arrowButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 15,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.12,
-    shadowRadius: 2,
-    elevation: 3,
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 6,
     position: 'absolute',
-    zIndex: 3,
+    zIndex: 5,
   },
   leftArrow: {
-    left: 8,
+    left: -24,
     top: '50%',
-    transform: [{ translateY: -14 }],
+    transform: [{ translateY: -24 }],
   },
   rightArrow: {
-    right: 8,
+    right: -24,
     top: '50%',
-    transform: [{ translateY: -14 }],
+    transform: [{ translateY: -24 }],
   },
   
   arrowText: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: '700',
   },
   viewAllWrap: {
@@ -297,16 +351,17 @@ const styles = StyleSheet.create({
     zIndex: 0,
   },
   bgTopRight: {
-    top: 0,
-    right: -40,
-    width: 220,
-    height: 180,
+    top: -40,
+    right: -120,
+    width: 240,
+    height: 200,
   },
   bgBottomLeft: {
-    bottom: -20,
-    left: -80,
+    bottom: -80,
+    left: -110,
     width: 260,
     height: 260,
+    transform: [{ rotate: '-10deg' }],
   },
 });
 

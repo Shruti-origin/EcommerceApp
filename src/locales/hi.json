@@ -71,10 +71,56 @@
     "title": "डील्स",
     "hotDeals": "हॉट डील्स",
     "limitedOffer": "सीमित समय की पेशकश",
-    "shopNow": "अभी खरीदें"
+    "shopNow": "अभी खरीदें",
+    "promoLabel": "विशेष ऑफर",
+    "promoTitle": "अतिरिक्त सेल 30% छूट",
+    "promoSub": "कांट्रास्ट रंग वाले हैंडल के साथ बाल्टी खिलौना। समुद्र तट पर खेलने के लिए परफेक्ट।",
+    "getOffer": "केवल Rs. {{price}}",
+    "sort": "छांटें",
+    "category": "श्रेणी",
+    "age": "आयु",
+    "filter": "फ़िल्टर",
+    "sectionGhagra": "घाघरा",
+    "sortOptions": {
+      "relevance": "प्रासंगिकता",
+      "newArrivals": "नए आगमन",
+      "priceHighToLow": "कीमत (ऊँचा से कम)",
+      "priceLowToHigh": "कीमत (कम से ऊँचा)",
+      "rating": "रेटिंग",
+      "discount": "छूट"
+    }
   },
   "home": {
-    "searchPlaceholder": "उत्पाद खोजें..."
+    "searchPlaceholder": "उत्पाद खोजें...",
+    "bestSelling": "सर्वाधिक बिकने वाले उत्पाद",
+    "viewAll": "सभी देखें →"
+  },
+  "productGrid": {
+    "heading": "हर स्टाइल के कपड़े",
+    "subheading": "और भी बेहतर, यही हमारी खासियत है!"
+  },
+  "offsetPrinting": {
+    "heading": "उच्च-गुणवत्ता ऑफ़सेट प्रिंटिंग",
+    "subheading": "सभी फीचर्ड",
+    "sort": "छांटें",
+    "filter": "फ़िल्टर",
+    "fallback": {
+      "1": "ज़ोन स्वेटशर्ट",
+      "2": "जू मेन्स टी-शर्ट",
+      "3": "टॉडलर टी-शर्ट",
+      "4": "फाइन जर्सी टी"
+    }
+  },
+  "testimonial": {
+    "title": "लोग क्या कह रहे हैं",
+    "subtitle": "हम 15K+ व्यवसायों के लिए समर्थन प्रदान करते हैं।"
+  },
+  "features": {
+    "h1": "कूल कपड़े, हॉट डील्स",
+    "h2": "– केवल तुलसी बाग पर!",
+    "p": "स्टाइल मोड: तुलसी बाग",
+    "shopNow": "अभी खरीदें →",
+    "contactUs": "संपर्क करें →"
   },
   "signIn": {
     "title": "साइन इन",
@@ -254,8 +300,31 @@
     "allCategories": "सभी श्रेणियाँ",
     "viewAll": "सभी देखें",
     "products": "उत्पाद",
+    "featuredProducts": "फ़ीचर्ड उत्पाद",
     "noProducts": "कोई उत्पाद नहीं मिला",
     "loading": "उत्पाद लोड हो रहे हैं..."
+  },  "productGrid": {
+    "heading": "हर स्टाइल के कपड़े",
+    "subheading": "और भी बढ़िया, हम इसे सही करते हैं!"
+  },  "header": {
+    "promoText": "3 खरीदें 25% छूट पाएँ, अभी खरीदें >>",
+    "welcome": "स्वागत है",
+    "signInPrompt": "अपने खाते तक पहुँचने के लिए साइन इन करें",
+    "searchPlaceholder": "किसी उत्पाद को खोजें..",
+    "home": "होम",
+    "categories": "श्रेणियाँ",
+    "deals": "डील्स और ऑफ़र",
+    "newArrivals": "नए आगमन",
+    "wishlist": "इच्छा-सूची",
+    "myOrders": "मेरे ऑर्डर",
+    "logout": "लॉग आउट",
+    "signIn": "साइन इन",
+    "createAccount": "खाता बनाएं",
+    "logoutConfirm": "क्या आप वाकई लॉग आउट करना चाहते हैं?",
+    "logoutCancel": "रद्द करें",
+    "logoutAction": "लॉग आउट",
+    "logoutSuccessMessage": "सफलतापूर्वक लॉग आउट हो गए",
+    "logoutFailed": "लॉगआउट विफल रहा"
   },
   "common": {
     "success": "सफल",
@@ -269,6 +338,8 @@
     "close": "बंद करें",
     "confirm": "पुष्टि करें",
     "yes": "हाँ",
-    "no": "नहीं"
+    "no": "नहीं",
+    "done": "ठीक है",
+    "apply": "लागू करें"
   }
 }
