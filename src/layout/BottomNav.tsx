@@ -5,10 +5,12 @@ import {
   TouchableOpacity,
   StyleSheet,
   Platform,
+  Dimensions,
 } from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Home, List, Video, ShoppingCart, User } from 'lucide-react-native';
+import { wp, hp, scale } from '../utils/responsive';
 
 export type TabKey = 'Home' | 'Categories' | 'Video' | 'Account' | 'Cart' | 'Search' | 'Setting' | 'Profile' | 'Deals';
 
@@ -33,6 +35,17 @@ export default function BottomNav({ initial = 'Home', active: controlledActive, 
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const active = controlledActive ?? internalActive;
+  // Responsive for Android small screens: hide labels and reduce sizes when width < 360dp
+  const { width } = Dimensions.get('window');
+  const isSmallAndroid = Platform.OS === 'android' && width < 360;
+
+  const baseNavHeight = isSmallAndroid ? Math.round(scale(48)) : Math.round(scale(56));
+  const insetBottom = Math.max(insets.bottom, Math.round(hp(isSmallAndroid ? 1.0 : 1.6)));
+
+  const iconSize = isSmallAndroid ? Math.round(scale(18)) : Math.round(scale(20));
+  const tabPaddingTop = isSmallAndroid ? Math.round(hp(0.8)) : Math.round(hp(1.2));
+  const tabPaddingBottom = isSmallAndroid ? Math.round(hp(1.0)) : Math.round(hp(1.6));
+  const labelSize = isSmallAndroid ? Math.round(scale(11)) : Math.round(scale(13));
 
   const getTabLabel = (key: TabKey): string => {
     const labelMap: Record<TabKey, string> = {
@@ -63,7 +76,7 @@ export default function BottomNav({ initial = 'Home', active: controlledActive, 
     <View
       style={[
         styles.container,
-        {paddingBottom: Math.max(insets.bottom, 12), height: 72 + Math.max(insets.bottom, 12)},
+        { paddingBottom: insetBottom, height: baseNavHeight + insetBottom },
       ]}> 
       {TABS.map(tab => {
         const isActive = tab.key === active;
@@ -71,10 +84,12 @@ export default function BottomNav({ initial = 'Home', active: controlledActive, 
           <TouchableOpacity
             key={tab.key}
             activeOpacity={0.8}
-            style={styles.tab}
+            style={[styles.tab, { paddingTop: tabPaddingTop, paddingBottom: tabPaddingBottom }]}
             onPress={() => handlePress(tab.key)}>
-            {React.createElement(tab.Icon, { color: isActive ? '#111' : '#666', size: 21 })}
-            <Text style={[styles.label, isActive && styles.labelActive]}>{getTabLabel(tab.key)}</Text>
+            {React.createElement(tab.Icon, { color: isActive ? '#111' : '#666', size: iconSize })}
+            {!isSmallAndroid && (
+              <Text style={[styles.label, { fontSize: labelSize }, isActive && styles.labelActive]}>{getTabLabel(tab.key)}</Text>
+            )}
           </TouchableOpacity>
         );
       })} 
@@ -101,12 +116,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flex: 1,
-    paddingTop: 10,
-    paddingBottom: 12,
+    paddingTop: hp(1.2),
+    paddingBottom: hp(1.6),
   },
   label: {
-    marginTop: 6,
-    fontSize: 13,
+    marginTop: hp(0.6),
+    fontSize: scale(13),
     color: '#666',
   },
   labelActive: {

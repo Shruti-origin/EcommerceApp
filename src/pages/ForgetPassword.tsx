@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { SafeAreaView, View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Image } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff } from 'lucide-react-native';
+import { wp, hp, scale } from '../utils/responsive';
 
 const ForgetPassword: React.FC<{ navigate?: (name: string, params?: any) => void; goBack?: () => void }> = ({ navigate }) => {
   const { t } = useTranslation();
@@ -95,9 +96,9 @@ const styles = StyleSheet.create({
   leafBottom: { position: 'absolute', bottom: -180, right: -170, width: 400, height: 400, opacity: 0.35, transform: [{ rotate: '65deg' }] },
   topBar: { position: 'absolute', top: 18, right: 18 },
   skipText: { color: '#000000' ,marginTop:15, marginRight:10},
-  formWrap: { width: '92%', maxWidth: 520, paddingHorizontal: 18, paddingTop: 30, alignItems: 'stretch' },
-  titleBig: { fontSize: 28, fontWeight: '700', textAlign: 'left', marginBottom: 6, color: '#111827' },
-  subtitle: { color: '#6B7280', marginBottom: 18, lineHeight: 18 },
+  formWrap: { width: '92%', maxWidth: 520, paddingHorizontal: wp(4), paddingTop: hp(3), alignItems: 'stretch' },
+  titleBig: { fontSize: scale(28), fontWeight: '700', textAlign: 'left', marginBottom: hp(0.8), color: '#111827' },
+  subtitle: { color: '#6B7280', marginBottom: hp(2), lineHeight: scale(18) },
   pillInput: { backgroundColor: '#F3F4F6', borderRadius: 28, paddingVertical: 12, paddingHorizontal: 16, marginBottom: 12, color: '#000' },
   passwordRow: { position: 'relative' },
   passwordInput: { paddingRight: 48 },

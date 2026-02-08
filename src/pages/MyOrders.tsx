@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { wp, hp, scale } from '../utils/responsive';
 import { orderService } from '../services/api';
 
 interface Order {
@@ -355,31 +356,32 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    padding: 16,
+    paddingHorizontal: wp(4),
+    paddingVertical: hp(2),
   },
   header: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 8,
+    paddingHorizontal: wp(4),
+    paddingTop: hp(2),
+    paddingBottom: hp(1),
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: scale(24),
     fontWeight: '700',
     color: '#111827',
-    marginBottom: 4,
+    marginBottom: hp(0.5),
   },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: scale(14),
     color: '#6B7280',
   },
   listContent: {
-    padding: 16,
+    paddingHorizontal: wp(4),
   },
   emptyCard: {
     flex: 1,
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 48,
+    padding: wp(6),
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',

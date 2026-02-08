@@ -53,6 +53,7 @@ const styles = StyleSheet.create({
     paddingVertical: 70,
     overflow: 'hidden',
     position: 'relative',
+    marginBottom: 40,
   },
   deco: {
     position: 'absolute',

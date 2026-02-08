@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, FlatList, useWindowDimensions, Modal, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight, ArrowUpDown, ChevronDown, Funnel, List, Calendar, Heart } from 'lucide-react-native';
+import { wp, hp, scale } from '../utils/responsive';
 import { guestWishlistUtils } from '../utils/wishlistUtils';
 
 // Ghagra items copied from CategoryProductsGrid
@@ -163,7 +164,7 @@ const Deals = ({ navigate }: { navigate?: (screen: string, params?: any) => void
             {/* Toolbar */}
             <View style={styles.toolbarRow}>
               <TouchableOpacity 
-                style={styles.tool} 
+                style={[styles.tool, styles.toolDivider]} 
                 onPress={() => setSortVisible(true)}
                 activeOpacity={0.6}
               > 
@@ -171,7 +172,7 @@ const Deals = ({ navigate }: { navigate?: (screen: string, params?: any) => void
                 <Text style={styles.toolText}>{t('deals.sort')}</Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                style={styles.tool} 
+                style={[styles.tool, styles.toolDivider]} 
                 onPress={() => setCategoryVisible(true)}
                 activeOpacity={0.6}
               > 
@@ -179,7 +180,7 @@ const Deals = ({ navigate }: { navigate?: (screen: string, params?: any) => void
                 <ChevronDown size={14} color="#111827" style={{ marginLeft: 6 }} />
               </TouchableOpacity>
               <TouchableOpacity 
-                style={styles.tool} 
+                style={[styles.tool, styles.toolDivider]} 
                 onPress={() => setAgeVisible(true)}
                 activeOpacity={0.6}
               > 
@@ -401,6 +402,7 @@ timerSep: {
   price: { color: '#111827', fontWeight: '800' },
   toolbarRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 8, paddingVertical: 10, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#F3F4F6' },
   tool: { paddingHorizontal: 8, paddingVertical: 6, flexDirection: 'row', alignItems: 'center' },
+  toolDivider: { borderRightWidth: 1, borderRightColor: '#E5E7EB', paddingRight: 8, marginRight: 8 },
   toolText: { color: '#111827', fontWeight: '600' },
   
   // Modal styles   

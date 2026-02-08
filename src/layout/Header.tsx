@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Truck, Search, Menu, ShoppingBag, Home, List, Gift, Heart as HeartIcon, User, ChevronLeft, Heart, LogOut, Sparkles, TrendingUp } from 'lucide-react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { guestCartUtils } from '../utils/cartUtils';
 import { guestWishlistUtils } from '../utils/wishlistUtils';
@@ -29,14 +30,50 @@ type HeaderProps = {
 
 type UserType = { firstName?: string; lastName?: string; email?: string } | null;
 
+// Android-responsive: detect small Android screens (<360dp)
+const { width: screenWidth } = Dimensions.get('window');
+const isSmallAndroid = Platform.OS === 'android' && screenWidth < 360;
+
 const Header: React.FC<HeaderProps> = ({ navigate, setActive, goBack, showBackButton = false }) => {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [cartCount, setCartCount] = useState(0);
   const [wishlistCount, setWishlistCount] = useState(0);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<UserType>(null);
+
+  // Promo marquee animation
+  const promoTranslate = useRef(new Animated.Value(0)).current;
+  const [singleWidth, setSingleWidth] = useState(0);
+  const [promoContainerWidth, setPromoContainerWidth] = useState(0);
+  const promoItems = [
+    { text: 'Buy 3 Get 25% Off, Shop Now >>', bg: '#e05559', textColor: '#fff' },
+    { text: 'FREE shipping on £39.00+ | Free Returns', bg: '#75bd4b', textColor: '#fff', icon: <Truck size={isSmallAndroid ? 14 : 18} color="#fff" /> },
+    { text: 'Cosy Chick Deals, 60-30% Off, Shop Here >>', bg: '#DDD1A8', textColor: '#000' },
+  ];
+
+  useEffect(() => {
+    let anim: Animated.CompositeAnimation | null = null;
+    // Start seamless loop once we know the single sequence width
+    if (singleWidth && promoContainerWidth) {
+      promoTranslate.setValue(0);
+      const distance = singleWidth;
+      const duration = Math.max(8000, Math.round((distance / screenWidth) * 3500));
+
+      anim = Animated.loop(
+        Animated.timing(promoTranslate, {
+          toValue: -distance,
+          duration,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        })
+      );
+      anim.start();
+    }
+    return () => { if (anim) anim?.stop(); };
+  }, [singleWidth, promoContainerWidth, promoTranslate]);
 
   useEffect(() => {
     checkAuth();
@@ -215,28 +252,49 @@ const Header: React.FC<HeaderProps> = ({ navigate, setActive, goBack, showBackBu
   };
 
   return (
-    <View style={styles.wrapper}>
-      <View style={styles.promo}>
-        <Text style={styles.promoText}>Buy 3 Get 25% Off, Shop Now &gt;&gt;</Text>
-        <TouchableOpacity style={styles.promoCart} activeOpacity={0.9}>
-          <Truck size={18} color="#fff" />
-        </TouchableOpacity>
+    <SafeAreaView style={styles.wrapper} edges={["top"]}>
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <View style={styles.promo} onLayout={(e) => setPromoContainerWidth(e.nativeEvent.layout.width)}>
+          {/* Hidden single sequence used to measure exact width (no padding/margins) */}
+        <View style={{ position: 'absolute', left: 0, top: 0, opacity: 0 }} onLayout={(e) => setSingleWidth(e.nativeEvent.layout.width)}>
+          <View style={styles.promoTrack}>
+            {promoItems.map((item, idx) => (
+              <View key={`m-${idx}`} style={[styles.promoItem, { backgroundColor: item.bg }]}>
+                {item.icon ? <View style={styles.promoItemIcon}>{item.icon}</View> : null}
+                <Text style={[styles.promoItemText, item.textColor ? { color: item.textColor } : null]}>{item.text}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <Animated.View style={[styles.promoTrack, { transform: [{ translateX: promoTranslate }] }]}>
+          {promoItems.concat(promoItems).map((item, idx) => (
+            <View key={idx} style={[styles.promoItem, { backgroundColor: item.bg }]}>
+              {item.icon ? <View style={styles.promoItemIcon}>{item.icon}</View> : null}
+              <Text style={[styles.promoItemText, item.textColor ? { color: item.textColor } : null]}>{item.text}</Text>
+            </View>
+          ))}
+        </Animated.View>
+
+        {/* <TouchableOpacity style={styles.promoCart} activeOpacity={0.9} accessibilityLabel="Promo action">
+          <Truck size={isSmallAndroid ? 14 : 18} color="#fff" />
+        </TouchableOpacity> */}
       </View>
 
       <View style={styles.searchRow}>
         {showBackButton ? (
           <TouchableOpacity style={styles.menuBtn} activeOpacity={0.7} onPress={() => goBack?.()}>
-            <ChevronLeft size={20} color="#111" />
+            <ChevronLeft size={isSmallAndroid ? 18 : 20} color="#111" />
           </TouchableOpacity>
         ) : (
           <TouchableOpacity style={styles.menuBtn} activeOpacity={0.7} onPress={() => (open ? closeSidebar() : openSidebar())}>
-            <Menu size={18} color="#0b0c09e0" />
+            <Menu size={isSmallAndroid ? 16 : 18} color="#0b0c09e0" />
           </TouchableOpacity>
         )}
 
         <View style={styles.searchBox}>
           <TouchableOpacity onPress={handleSearch} style={{ padding: 4 }}>
-            <Search size={18} color="#9EA0A4" />
+            <Search size={isSmallAndroid ? 16 : 18} color="#9EA0A4" />
           </TouchableOpacity>
           <TextInput
             style={styles.input}
@@ -250,7 +308,7 @@ const Header: React.FC<HeaderProps> = ({ navigate, setActive, goBack, showBackBu
         </View>
 
         <TouchableOpacity style={styles.iconBtn} activeOpacity={0.7} accessibilityLabel="Open wishlist" onPress={() => { if (open) closeSidebar(); navigate?.('WishList'); }}>
-          <HeartIcon size={18} color="#666" />
+          <HeartIcon size={isSmallAndroid ? 18 : 22} color="#666" />
           {wishlistCount > 0 && (
             <View style={styles.wishlistBadge}>
               <Text style={styles.wishlistBadgeText}>{wishlistCount}</Text>
@@ -259,7 +317,7 @@ const Header: React.FC<HeaderProps> = ({ navigate, setActive, goBack, showBackBu
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.cartBtn} activeOpacity={0.7} accessibilityLabel="Open cart" onPress={() => { if (open) closeSidebar(); navigate?.('Cart'); }}>
-          <ShoppingBag size={18} color="#222" />
+          <ShoppingBag size={isSmallAndroid ? 18 : 22} color="#222" />
           {cartCount > 0 && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{cartCount}</Text>
@@ -279,7 +337,7 @@ const Header: React.FC<HeaderProps> = ({ navigate, setActive, goBack, showBackBu
             <View style={styles.sidebarHeader}>
               <View style={styles.userInfo}>
                 <View style={styles.avatar}>
-                  <User size={28} color="#2563EB" strokeWidth={2} />
+                  <User size={isSmallAndroid ? 22 : 28} color="#2563EB" strokeWidth={2} />
                 </View>
                 <Text style={styles.userName}>{user ? `${user.firstName} ${user.lastName}` : 'Welcome'}</Text>
                 <Text style={styles.userEmail}>{user ? user.email : 'Sign in to access your account'}</Text>
@@ -299,7 +357,7 @@ const Header: React.FC<HeaderProps> = ({ navigate, setActive, goBack, showBackBu
                   activeOpacity={0.7}
                 >
                   <View style={styles.iconContainer}>
-                    <Home size={20} color="#2563EB" strokeWidth={2} />
+                    <Home size={isSmallAndroid ? 18 : 20} color="#2563EB" strokeWidth={2} />
                   </View>
                   <Text style={styles.sidebarText}>Home</Text>
                 </TouchableOpacity>
@@ -310,7 +368,7 @@ const Header: React.FC<HeaderProps> = ({ navigate, setActive, goBack, showBackBu
                   activeOpacity={0.7}
                 >
                   <View style={styles.iconContainer}>
-                    <List size={20} color="#2563EB" strokeWidth={2} />
+                    <List size={isSmallAndroid ? 18 : 20} color="#2563EB" strokeWidth={2} />
                   </View>
                   <Text style={styles.sidebarText}>Categories</Text>
                 </TouchableOpacity>
@@ -321,7 +379,7 @@ const Header: React.FC<HeaderProps> = ({ navigate, setActive, goBack, showBackBu
                   activeOpacity={0.7}
                 >
                   <View style={styles.iconContainer}>
-                    <Gift size={20} color="#2563EB" strokeWidth={2} />
+                    <Gift size={isSmallAndroid ? 18 : 20} color="#2563EB" strokeWidth={2} />
                   </View>
                   <Text style={styles.sidebarText}>Deals & Offers</Text>
                 </TouchableOpacity>
@@ -332,7 +390,7 @@ const Header: React.FC<HeaderProps> = ({ navigate, setActive, goBack, showBackBu
                   activeOpacity={0.7}
                 >
                   <View style={styles.iconContainer}>
-                    <TrendingUp size={20} color="#2563EB" strokeWidth={2} />
+                    <TrendingUp size={isSmallAndroid ? 18 : 20} color="#2563EB" strokeWidth={2} />
                   </View>
                   <Text style={styles.sidebarText}>New Arrivals</Text>
                 </TouchableOpacity>
@@ -343,7 +401,7 @@ const Header: React.FC<HeaderProps> = ({ navigate, setActive, goBack, showBackBu
                   activeOpacity={0.7}
                 >
                   <View style={styles.iconContainer}>
-                    <HeartIcon size={20} color="#2563EB" strokeWidth={2} />
+                    <HeartIcon size={isSmallAndroid ? 18 : 20} color="#2563EB" strokeWidth={2} />
                   </View>
                   <Text style={styles.sidebarText}>Wishlist</Text>
                 </TouchableOpacity>
@@ -355,7 +413,7 @@ const Header: React.FC<HeaderProps> = ({ navigate, setActive, goBack, showBackBu
                     activeOpacity={0.7}
                   >
                     <View style={styles.iconContainer}>
-                      <ShoppingBag size={20} color="#2563EB" strokeWidth={2} />
+                      <ShoppingBag size={isSmallAndroid ? 18 : 20} color="#2563EB" strokeWidth={2} />
                     </View>
                     <Text style={styles.sidebarText}>My Orders</Text>
                   </TouchableOpacity>
@@ -371,7 +429,7 @@ const Header: React.FC<HeaderProps> = ({ navigate, setActive, goBack, showBackBu
                   activeOpacity={0.7}
                 >
                   <View style={[styles.iconContainer, styles.logoutIconContainer]}>
-                    <LogOut size={20} color="#DC2626" strokeWidth={2} />
+                    <LogOut size={isSmallAndroid ? 18 : 20} color="#DC2626" strokeWidth={2} />
                   </View>
                   <Text style={[styles.sidebarText, styles.logoutText]}>Logout</Text>
                 </TouchableOpacity>
@@ -382,7 +440,7 @@ const Header: React.FC<HeaderProps> = ({ navigate, setActive, goBack, showBackBu
                     onPress={() => { navigate?.('SignIn'); closeSidebar(); }}
                     activeOpacity={0.8}
                   >
-                    <User size={18} color="#fff" strokeWidth={2.5} />
+                    <User size={isSmallAndroid ? 16 : 18} color="#fff" strokeWidth={2.5} />
                     <Text style={styles.signInText}>Sign In</Text>
                   </TouchableOpacity>
                   <TouchableOpacity 
@@ -398,61 +456,84 @@ const Header: React.FC<HeaderProps> = ({ navigate, setActive, goBack, showBackBu
           </ScrollView>
         </Animated.View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   wrapper: {
     backgroundColor: '#fff',
-    paddingTop: Platform.OS === 'ios' ? 46 : 40,
+    marginTop:2,
   },
   promo: {
-    backgroundColor: '#e56b6f',
-    height: 39,
+    // backgroundColor: '#e56b6f',
+    height: isSmallAndroid ? 32 : 36,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: isSmallAndroid ? 8 : 12,
+    overflow: 'hidden',
+  },
+  promoTrack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  promoItem: {
+    width: 330,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 9,
     paddingHorizontal: 12,
+    borderRadius: 0,
+    marginRight: 0,
+  },
+  promoItemIcon: {
+    marginRight: isSmallAndroid ? 6 : 8,
+  },
+  promoItemText: {
+    fontWeight: '600',
+    fontSize: isSmallAndroid ? 12 : 14,
   },
   promoText: {
     color: '#fff',
     fontWeight: '600',
-    fontSize: 16,
-    paddingLeft: 50,
-
+    fontSize: isSmallAndroid ? 12 : 14,
+    paddingLeft: isSmallAndroid ? 32 : 48,
   },
   promoCart: {
+    position: 'absolute',
+    right: isSmallAndroid ? 8 : 12,
+    zIndex: 2,
     backgroundColor: '#3bbf6b',
-    paddingVertical: 6,
-    paddingHorizontal: 8,
+    paddingVertical: isSmallAndroid ? 4 : 6,
+    paddingHorizontal: isSmallAndroid ? 6 : 8,
     borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },
   promoCartText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 14,
   },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: isSmallAndroid ? 8 : 12,
+    paddingVertical: isSmallAndroid ? 6 : 8,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
   menuBtn: {
-    padding: 8,
-    marginRight: 8,
+    padding: isSmallAndroid ? 4 : 6,
+    marginRight: isSmallAndroid ? 4 : 8,
   },
   searchBox: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f4f4f4',
-    paddingHorizontal: 10,
-    height: 40,
+    paddingHorizontal: isSmallAndroid ? 8 : 12,
+    height: isSmallAndroid ? 36 : 40,
     borderRadius: 8,
   },
   searchIcon: {
@@ -464,10 +545,11 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     padding: 0,
     color: '#222',
+    fontSize: isSmallAndroid ? 13 : 14,
   },
   iconBtn: {
-    padding: 8,
-    marginLeft: 8,
+    padding: isSmallAndroid ? 6 : 8,
+    marginLeft: isSmallAndroid ? 4 : 8,
     position: 'relative',
   },
   wishlistBadge: {
@@ -475,38 +557,38 @@ const styles = StyleSheet.create({
     right: 0,
     top: -2,
     backgroundColor: '#EF4444',
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: isSmallAndroid ? 16 : 18,
+    height: isSmallAndroid ? 16 : 18,
+    borderRadius: isSmallAndroid ? 8 : 9,
     alignItems: 'center',
     justifyContent: 'center',
   },
   wishlistBadgeText: {
     color: '#fff',
-    fontSize: 11,
+    fontSize: isSmallAndroid ? 9 : 11,
     fontWeight: '700',
   },
   icon: {
-    fontSize: 18,
+    fontSize: isSmallAndroid ? 16 : 18,
   },
   cartBtn: {
-    padding: 8,
-    marginLeft: 6,
+    padding: isSmallAndroid ? 4 : 6,
+    marginLeft: isSmallAndroid ? 4 : 6,
   },
   badge: {
     position: 'absolute',
-    right: 2,
-    top: 2,
+    right: 0,
+    top: -2,
     backgroundColor: '#10b981',
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: isSmallAndroid ? 16 : 18,
+    height: isSmallAndroid ? 16 : 18,
+    borderRadius: isSmallAndroid ? 8 : 9,
     alignItems: 'center',
     justifyContent: 'center',
   },
   badgeText: {
     color: '#fff',
-    fontSize: 11,
+    fontSize: isSmallAndroid ? 9 : 11,
     fontWeight: '700',
   },
 
@@ -522,7 +604,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     backgroundColor: '#FFFFFF',
-    paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    paddingTop: Platform.OS === 'ios' ? 48 : (isSmallAndroid ? 36 : 40),
     zIndex: 1001,
     shadowColor: '#000',
     shadowOffset: { width: 2, height: 0 },
@@ -535,25 +617,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sidebarHeader: {
-    paddingHorizontal: 20,
-    paddingVertical: 24,
-    marginBottom: 8,
+    paddingHorizontal: isSmallAndroid ? 16 : 20,
+    paddingVertical: isSmallAndroid ? 12 : 16,
+    marginBottom: isSmallAndroid ? 4 : 6,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
   menuHeaderContainer: {
-    paddingVertical: 4,
+    paddingVertical: 3,
   },
   sidebarTitle: {
-    fontSize: 24,
+    fontSize: isSmallAndroid ? 20 : 24,
     fontWeight: '700',
     color: '#1E293B',
     letterSpacing: -0.5,
   },
   sidebarSubtitle: {
-    fontSize: 13,
+    fontSize: isSmallAndroid ? 11 : 13,
     color: '#64748B',
-    marginTop: 4,
+    marginTop: 3,
     fontWeight: '500',
   },
   userInfo: {
@@ -561,54 +643,55 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: isSmallAndroid ? 56 : 72,
+    height: isSmallAndroid ? 56 : 72,
+    borderRadius: isSmallAndroid ? 28 : 36,
     backgroundColor: '#EFF6FF',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: isSmallAndroid ? 8 : 10,
     borderWidth: 2,
     borderColor: '#DBEAFE',
   },
   userName: {
-    fontSize: 18,
+    fontSize: isSmallAndroid ? 15 : 18,
     fontWeight: '700',
     color: '#1E293B',
-    marginBottom: 4,
+    marginBottom: 3,
   },
   userEmail: {
-    fontSize: 13,
+    fontSize: isSmallAndroid ? 11 : 13,
     color: '#64748B',
     fontWeight: '500',
   },
   menuSection: {
-    paddingTop: 12,
+    paddingTop: isSmallAndroid ? 8 : 10,
   },
   sidebarItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    marginHorizontal: 8,
+    paddingVertical: isSmallAndroid ? 8 : 11,
+    paddingHorizontal: isSmallAndroid ? 12 : 16,
+    marginHorizontal: isSmallAndroid ? 6 : 8,
     borderRadius: 10,
-    marginBottom: 4,
+    marginBottom: isSmallAndroid ? 3 : 4,
   },
   iconContainer: {
-    width: 40,
-    height: 40,
+    width: isSmallAndroid ? 32 : 40,
+    height: isSmallAndroid ? 32 : 40,
     borderRadius: 10,
     backgroundColor: '#EFF6FF',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 14,
+    marginRight: isSmallAndroid ? 8 : 12,
   },
   sidebarText: {
     flex: 1,
-    fontSize: 15,
+    fontSize: isSmallAndroid ? 13 : 15,
     color: '#334155',
     fontWeight: '600',
     letterSpacing: 0,
+    ...(isSmallAndroid && { display: 'none' }), // Hide labels on small Android only
   },
   divider: {
     height: 1,
@@ -637,7 +720,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#2563EB',
-    paddingVertical: 14,
+    paddingVertical: isSmallAndroid ? 12 : 14,
     borderRadius: 10,
     gap: 8,
     shadowColor: '#2563EB',
@@ -648,7 +731,7 @@ const styles = StyleSheet.create({
   },
   signInText: {
     color: '#fff',
-    fontSize: 15,
+    fontSize: isSmallAndroid ? 13 : 15,
     fontWeight: '700',
     letterSpacing: 0.3,
   },
@@ -657,14 +740,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#fff',
-    paddingVertical: 14,
+    paddingVertical: isSmallAndroid ? 12 : 14,
     borderRadius: 10,
     borderWidth: 1.5,
     borderColor: '#E2E8F0',
   },
   signUpText: {
     color: '#475569',
-    fontSize: 15,
+    fontSize: isSmallAndroid ? 13 : 15,
     fontWeight: '700',
     letterSpacing: 0.3,
   },

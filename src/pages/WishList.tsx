@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Heart } from 'lucide-react-native';
+import { wp, hp, scale } from '../utils/responsive';
 import { guestWishlistUtils } from '../utils/wishlistUtils';
 import { guestCartUtils } from '../utils/cartUtils';
 

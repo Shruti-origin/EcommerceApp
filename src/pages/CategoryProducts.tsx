@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, SafeAreaView, StatusBar } from 'react-native';
+import { wp, hp, scale } from '../utils/responsive';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft } from 'lucide-react-native';
 import ProductsService from '../services/productsService';
@@ -96,14 +97,14 @@ const CategoryProducts = ({ categoryId, title, categoryMeta, navigate, goBack, i
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#fff' },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
-  backBtn: { padding: 4, marginRight: 8 },
-  headerTitle: { fontSize: 18, fontWeight: '800' },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: wp(4), paddingVertical: hp(1.2), borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  backBtn: { padding: wp(1), marginRight: wp(2) },
+  headerTitle: { fontSize: scale(18), fontWeight: '800' },
   container: { flex: 1 },
-  loading: { padding: 40, alignItems: 'center' },
-  center: { padding: 40, alignItems: 'center' },
-  row: { flexDirection: 'row', gap: 12, marginBottom: 12, backgroundColor: '#fff', padding: 8, borderRadius: 8, alignItems: 'center' },
-  thumb: { width: 84, height: 84, borderRadius: 8, backgroundColor: '#eee', marginRight: 8 },
+  loading: { padding: hp(4), alignItems: 'center' },
+  center: { padding: hp(4), alignItems: 'center' },
+  row: { flexDirection: 'row', gap: wp(3), marginBottom: hp(1.2), backgroundColor: '#fff', padding: wp(2), borderRadius: 8, alignItems: 'center' },
+  thumb: { width: wp(24), height: wp(24), borderRadius: 8, backgroundColor: '#eee', marginRight: wp(2) },
   title: { fontWeight: '700', marginBottom: 6 },
   price: { color: '#111827', fontWeight: '700' },
 });

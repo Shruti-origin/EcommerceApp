@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, SafeAreaView, Dimensions } from 'react-native';
+import { wp, hp, scale } from '../utils/responsive';
 
 const slides = [
   {
@@ -84,10 +85,10 @@ const styles = StyleSheet.create({
   topBar: { position: 'absolute', top: 16, right: 16, zIndex: 10 },
   skipBtn: { padding: 8 },
   skipText: { color: '#111827' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 18 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: hp(2) },
   cardContainer: {
-    width: Math.min(360, width - 40),
-    borderRadius: 22,
+    width: Math.min(360, Math.round(wp(100) - wp(10))),
+    borderRadius: scale(22),
     backgroundColor: '#fff',
     overflow: 'hidden',
     elevation: 14,
@@ -95,12 +96,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.16,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 8 },
-    marginBottom: 8,
+    marginBottom: hp(1),
   },
-  image: { width: '100%', height: 360, borderTopLeftRadius: 22, borderTopRightRadius: 22 },
-  cardFooter: { padding: 22, borderBottomLeftRadius: 22, borderBottomRightRadius: 22, backgroundColor: '#fff' },
-  cardTitle: { fontSize: 22, fontWeight: '800', marginBottom: 8, textAlign: 'center' },
-  cardDesc: { color: '#6B7280', textAlign: 'center', fontSize: 13, lineHeight: 18 },
+  image: { width: '100%', height: hp(45), borderTopLeftRadius: scale(22), borderTopRightRadius: scale(22) },
+  cardFooter: { padding: wp(5), borderBottomLeftRadius: scale(22), borderBottomRightRadius: scale(22), backgroundColor: '#fff' },
+  cardTitle: { fontSize: scale(22), fontWeight: '800', marginBottom: hp(0.8), textAlign: 'center' },
+  cardDesc: { color: '#6B7280', textAlign: 'center', fontSize: scale(13), lineHeight: scale(18) },
   dotsRow: { flexDirection: 'row', marginTop: 20, alignItems: 'center' },
   dot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#F6C8C8', marginHorizontal: 8, opacity: 0.95 },
   dotActive: { backgroundColor: '#E84F30', opacity: 1, transform: [{ scale: 1.15 }] },

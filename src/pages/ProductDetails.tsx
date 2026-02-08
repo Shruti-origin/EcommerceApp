@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ArrowUpDown, SlidersHorizontal, ChevronDown, Star, Minus, Plus, ShoppingCart } from 'lucide-react-native';
+import { wp, hp, scale } from '../utils/responsive';
 import { productService } from '../services/api';
 import { guestCartUtils } from '../utils/cartUtils';
 import getLocalized from '../utils/localize';
@@ -603,15 +604,15 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: wp(4),
+    paddingVertical: hp(1.5),
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
   backBtn: {
     padding: 4,
-    marginRight: 8,
+    marginRight: wp(2),
   },
   filtersRow: {
     flexDirection: 'row',
@@ -660,7 +661,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   productInfo: {
-    padding: 16,
+    padding: wp(4),
   },
   priceRow: {
     flexDirection: 'row',
@@ -821,8 +822,8 @@ const styles = StyleSheet.create({
   bottomBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: wp(4),
+    paddingVertical: hp(1.5),
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',

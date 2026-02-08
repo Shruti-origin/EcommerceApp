@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Dimensions, Platform, ImageBackground, TouchableOpacity } from 'react-native';
+import { wp, hp, scale } from '../utils/responsive';
 
 const HeroSection: React.FC<{ imageResizeMode?: 'cover' | 'contain' | 'stretch' | 'repeat' | 'center' }> = ({ imageResizeMode = 'center' }) => {
   const screenWidth = Dimensions.get('window').width;
@@ -54,12 +55,12 @@ const HeroSection: React.FC<{ imageResizeMode?: 'cover' | 'contain' | 'stretch' 
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    height: Platform.select({ ios: 320, android: 320, default: 320 }),
+    height: Platform.select({ ios: hp(40), android: hp(40), default: hp(40) }),
     backgroundColor: '#f8fafc',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 0,
-    marginBottom: 12,
+    marginBottom: hp(1.5),
   },
   background: {
     width: '100%',
@@ -69,42 +70,42 @@ const styles = StyleSheet.create({
   },
   inner: {
     width: '100%',
-    paddingHorizontal: 16,
+    paddingHorizontal: wp(4),
     alignItems: 'center',
   },
   title: {
-    fontSize: 28,
+    fontSize: scale(28),
     fontWeight: '700',
     color: '#111827',
-    marginBottom: 8,
+    marginBottom: hp(1),
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: scale(16),
     color: '#6b7280',
     textAlign: 'center',
   },
   arrowButton: {
     position: 'absolute',
     top: '50%',
-    marginTop: -20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    marginTop: -wp(6),
+    width: wp(12),
+    height: wp(12),
+    borderRadius: wp(6),
     backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 5,
   },
   leftArrow: {
-    left: 12,
+    left: wp(3),
   },
   rightArrow: {
-    right: 12,
+    right: wp(3),
   },
   arrowText: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: scale(20),
     fontWeight: '700',
   },
   indicatorContainer: {

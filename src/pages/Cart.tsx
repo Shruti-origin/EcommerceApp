@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Plus, Minus, Trash, ShoppingBag, ArrowRight } from 'lucide-react-native';
+import { wp, hp, scale } from '../utils/responsive';
 import { guestCartUtils } from '../utils/cartUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -272,7 +273,7 @@ const Cart = ({ navigate, goBack }: { navigate?: (name: string, params?: any) =>
               renderItem={renderItem}
               // Allow FlatList to scroll independently
               scrollEnabled={true}
-              contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16 }}
+              contentContainerStyle={{ paddingHorizontal: wp(4), paddingTop: hp(2) }}
               ListEmptyComponent={() => (
                 <View style={{ padding: 24 }}>
                   <Text style={{ textAlign: 'center', color: '#6B7280' }}>No items in cart</Text>
@@ -318,39 +319,39 @@ const Cart = ({ navigate, goBack }: { navigate?: (name: string, params?: any) =>
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  container: { flex: 1, backgroundColor: '#F9FAFB', paddingHorizontal: wp(4) },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   
   // Empty State
-  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 },
-  emptyTitle: { fontSize: 24, fontWeight: '700', color: '#111827', marginTop: 24, marginBottom: 12 },
-  emptySubtitle: { fontSize: 16, color: '#6B7280', textAlign: 'center', marginBottom: 32, lineHeight: 24 },
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: wp(6) },
+  emptyTitle: { fontSize: scale(24), fontWeight: '700', color: '#111827', marginTop: hp(2.5), marginBottom: hp(1.2) },
+  emptySubtitle: { fontSize: scale(16), color: '#6B7280', textAlign: 'center', marginBottom: hp(3), lineHeight: scale(24) },
   shopBtn: { 
     flexDirection: 'row', 
     alignItems: 'center', 
     backgroundColor: '#3B82F6', 
-    paddingHorizontal: 24, 
-    paddingVertical: 12, 
+    paddingHorizontal: wp(5), 
+    paddingVertical: hp(1.2), 
     borderRadius: 8,
     gap: 8
   },
-  shopBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  shopBtnText: { color: '#fff', fontSize: scale(16), fontWeight: '600' },
   
   // Header
   header: { 
     backgroundColor: '#fff',
-    paddingHorizontal: 16, 
-    paddingVertical: 16, 
+    paddingHorizontal: wp(4), 
+    paddingVertical: hp(2), 
     borderBottomWidth: 1, 
     borderBottomColor: '#E5E7EB',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center'
   },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: '#111827' },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  itemCount: { fontSize: 14, color: '#6B7280' },
-  clearBtn: { fontSize: 14, fontWeight: '600', color: '#EF4444' },
+  headerTitle: { fontSize: scale(20), fontWeight: '700', color: '#111827' },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: wp(4) },
+  itemCount: { fontSize: scale(14), color: '#6B7280' },
+  clearBtn: { fontSize: scale(14), fontWeight: '600', color: '#EF4444' },
   
   // Content
   contentWrapper: { flex: 1 },
@@ -360,19 +361,19 @@ const styles = StyleSheet.create({
   card: { 
     flexDirection: 'row', 
     backgroundColor: '#fff', 
-    marginBottom: 12, 
+    marginBottom: hp(1.2), 
     borderRadius: 8, 
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#E5E7EB'
   },
-  image: { width: 96, height: 140, resizeMode: 'cover', backgroundColor: '#F3F4F6' },
-  info: { flex: 1, padding: 12 },
-  title: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 4 },
-  brand: { fontSize: 12, color: '#6B7280', marginBottom: 4 },
-  description: { fontSize: 12, color: '#6B7280', marginBottom: 8, lineHeight: 16 },
-  variantRow: { flexDirection: 'row', gap: 12, marginBottom: 8 },
-  variantText: { fontSize: 12, color: '#374151' },
+  image: { width: wp(24), height: hp(18), resizeMode: 'cover', backgroundColor: '#F3F4F6' },
+  info: { flex: 1, padding: wp(3) },
+  title: { fontSize: scale(16), fontWeight: '700', color: '#111827', marginBottom: hp(0.6) },
+  brand: { fontSize: scale(12), color: '#6B7280', marginBottom: hp(0.6) },
+  description: { fontSize: scale(12), color: '#6B7280', marginBottom: hp(1), lineHeight: scale(16) },
+  variantRow: { flexDirection: 'row', gap: wp(3), marginBottom: hp(1) },
+  variantText: { fontSize: scale(12), color: '#374151' },
   priceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   unitPrice: { fontSize: 12, color: '#6B7280' },
   totalPrice: { fontSize: 16, fontWeight: '700', color: '#111827' },

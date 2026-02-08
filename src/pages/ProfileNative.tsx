@@ -28,6 +28,7 @@ import {
   Star,
   Share2,
 } from 'lucide-react-native';
+import { wp, hp, scale } from '../utils/responsive';
 
 // Profile screen with dark & light mode support
 export default function ProfileNative({ navigate, goBack }: { navigate?: (name: string, params?: any) => void; goBack?: () => void }) {
@@ -489,29 +490,29 @@ function getStyles(colors: any, insetTop: number, insetBottom: number) {
     },
     topSection: {
       flexDirection: 'row',
-      paddingHorizontal: 16,
+      paddingHorizontal: wp(4),
       alignItems: 'center',
     },
     avatar: {
-      width: 80,
-      height: 80,
-      borderRadius: 40,
+      width: scale(80),
+      height: scale(80),
+      borderRadius: scale(40),
       borderWidth: 2,
       borderColor: colors.border,
     },
     profileInfo: {
-      marginLeft: 16,
+      marginLeft: wp(4),
       flex: 1,
     },
     name: {
-      fontSize: 18,
+      fontSize: scale(18),
       fontWeight: '700',
       color: colors.text,
     },
     email: {
-      marginTop: 4,
+      marginTop: hp(0.5),
       color: colors.subText,
-      fontSize: 14,
+      fontSize: scale(14),
     },
     editButton: {
       marginTop: 12,

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Modal, View, Text, Pressable, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { wp, hp, scale } from '../utils/responsive';
 
 type Props = {
   visible: boolean;
@@ -72,16 +73,16 @@ export default function AddCardModal({ visible, onClose, onSave }: Props) {
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
   overlayPressable: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-  sheet: { backgroundColor: '#fff', borderTopLeftRadius: 16, borderTopRightRadius: 16, maxHeight: '80%', paddingTop: 12 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 8 },
-  title: { fontSize: 18, fontWeight: '700' },
-  closeBtn: { padding: 6 },
-  closeText: { fontSize: 20, color: '#6B7280' },
-  body: { paddingHorizontal: 20, paddingBottom: 20 },
-  label: { fontSize: 12, color: '#000000', marginBottom: 6 },
-  input: { backgroundColor: '#F8FAFC', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, borderWidth: 1, borderColor: '#F1F5F9' },
+  sheet: { backgroundColor: '#fff', borderTopLeftRadius: scale(16), borderTopRightRadius: scale(16), maxHeight: '80%', paddingTop: hp(1.2) },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: wp(4), paddingBottom: hp(1) },
+  title: { fontSize: scale(18), fontWeight: '700' },
+  closeBtn: { padding: wp(1.2) },
+  closeText: { fontSize: scale(20), color: '#6B7280' },
+  body: { paddingHorizontal: wp(4), paddingBottom: hp(2) },
+  label: { fontSize: scale(12), color: '#000000', marginBottom: hp(0.4) },
+  input: { backgroundColor: '#F8FAFC', borderRadius: 10, paddingHorizontal: wp(3), paddingVertical: hp(1.2), fontSize: scale(14), borderWidth: 1, borderColor: '#F1F5F9' },
   row: { flexDirection: 'row' },
   fieldRow: { flexDirection: 'row' },
-  saveBtn: { marginTop: 18, backgroundColor: '#E26B68', paddingVertical: 14, borderRadius: 50, alignItems: 'center' },
+  saveBtn: { marginTop: hp(2.2), backgroundColor: '#E26B68', paddingVertical: hp(1.6), borderRadius: 50, alignItems: 'center' },
   saveText: { color: '#fff', fontWeight: '700' },
 });

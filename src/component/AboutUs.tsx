@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft } from 'lucide-react-native';
+import { wp, hp, scale } from '../utils/responsive';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function AboutUs({ navigate, goBack }: { navigate?: (name: string, params?: any) => void; goBack?: () => void }) {
@@ -60,31 +61,31 @@ export default function AboutUs({ navigate, goBack }: { navigate?: (name: string
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  headerRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, marginBottom: 16 },
-  backBtn: { marginRight: 8, padding: 6 },
-  headerTitle: { fontSize: 16, fontWeight: '400', color: '#111' },
-  content: { paddingHorizontal: 24, paddingTop: 10 },
-  logoContainer: { alignItems: 'center', marginBottom: -20, marginTop: -20 },
-  logo: { width: 200, height: 200 },
-  heading: { fontSize: 22, fontWeight: '700', color: '#111', marginBottom: 16 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: wp(4), marginBottom: hp(1) },
+  backBtn: { marginRight: wp(2), padding: wp(1.2) },
+  headerTitle: { fontSize: scale(16), fontWeight: '400', color: '#111' },
+  content: { paddingHorizontal: wp(5), paddingTop: hp(1) },
+  logoContainer: { alignItems: 'center', marginBottom: -hp(2.5), marginTop: -hp(2.5) },
+  logo: { width: scale(180), height: scale(180) },
+  heading: { fontSize: scale(22), fontWeight: '700', color: '#111', marginBottom: hp(2) },
   description: {
-    fontSize: 15,
-    lineHeight: 24,
+    fontSize: scale(15),
+    lineHeight: scale(24),
     color: '#000000',
-    marginBottom: 12,
+    marginBottom: hp(1.2),
     
     textDecorationColor: '#1E40AF',
   },
   support: {
-    fontSize: 16,
+    fontSize: scale(16),
     fontWeight: '600',
     color: '#111',
-    marginTop: 24,
+    marginTop: hp(2.5),
   },
   
   // Decorative leaves
-  leafWrapper1: { position: 'absolute', right: 60, top: -40, width: 100, height: 100, overflow: 'visible' },
-  leaf1: { width: 300, height: 210, opacity: 0.3, transform: [{ rotate: '-30deg' }] },
+  leafWrapper1: { position: 'absolute', right: wp(12), top: -hp(5), width: wp(24), height: wp(24), overflow: 'visible' },
+  leaf1: { width: wp(60), height: wp(42), opacity: 0.3, transform: [{ rotate: '-30deg' }] },
   
   
 });

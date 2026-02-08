@@ -395,10 +395,7 @@ export default function ShippingAddress({ navigate, goBack }: { navigate?: (name
         if (id) setAddressId(id);
       }
 
-      console.log('📤 Save response:', resp);
-
-      // After save, try to re-fetch authoritative address from backend.
-      // If backend doesn't return a default immediately, fall back to the save response so UI shows the saved values.
+      // After save, re-fetch authoritative address from backend to ensure DB parity
       try {
         const refreshResp = await addressService.getDefaultAddress();
         const fresh = refreshResp?.data || refreshResp;
@@ -415,43 +412,9 @@ export default function ShippingAddress({ navigate, goBack }: { navigate?: (name
           setPhone(fresh.phone || phone);
           setLandmark(fresh.landmark || landmark);
           console.log('✅ Refreshed address from backend', fresh);
-        } else {
-          // No default returned — use the save response to update UI so user sees what they just saved
-          const src = resp?.data || resp;
-          if (src) {
-            console.warn('⚠️ getDefaultAddress returned empty, updating UI from save response');
-            setAddressId(src.id || src._id || (src._id && src._id.toString()) || addressId);
-            setFirstName(src.firstName || src.first_name || firstName);
-            setLastName(src.lastName || src.last_name || lastName);
-            setAddress(src.addressLine1 || src.address1 || src.address || address);
-            setAddress2(src.addressLine2 || src.address2 || address2);
-            setCity(src.city || city);
-            setState(src.state || state);
-            setCountry(src.country || country);
-            setPinCode(src.pincode || src.postcode || src.zip || pinCode);
-            setPhone(src.phone || phone);
-            setLandmark(src.landmark || landmark);
-            console.log('✅ Updated UI from save response', src);
-          }
         }
       } catch (refreshErr) {
         console.warn('Could not refresh default address after save', refreshErr);
-        // Fallback to the save response
-        const src = resp?.data || resp;
-        if (src) {
-          console.warn('⚠️ Using save response to update UI after refresh error');
-          setAddressId(src.id || src._id || (src._id && src._id.toString()) || addressId);
-          setFirstName(src.firstName || src.first_name || firstName);
-          setLastName(src.lastName || src.last_name || lastName);
-          setAddress(src.addressLine1 || src.address1 || src.address || address);
-          setAddress2(src.addressLine2 || src.address2 || address2);
-          setCity(src.city || city);
-          setState(src.state || state);
-          setCountry(src.country || country);
-          setPinCode(src.pincode || src.postcode || src.zip || pinCode);
-          setPhone(src.phone || phone);
-          setLandmark(src.landmark || landmark);
-        }
       }
 
       Alert.alert('Success', 'Address saved and refreshed');
@@ -477,22 +440,6 @@ export default function ShippingAddress({ navigate, goBack }: { navigate?: (name
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.sectionTitle}>{t('shipping.settings')}</Text>
         <Text style={styles.subtitle}>{t('shipping.shippingAddress')}</Text>
-
-        {(address || address2 || city || state || pinCode || phone) && (
-          <View style={styles.previewCard}>
-            <Text style={styles.previewTitle}>Saved Address</Text>
-            <Text style={styles.previewText}>{firstName} {lastName}</Text>
-            <Text style={styles.previewText}>
-              {address}{address2 ? ', ' + address2 : ''}
-            </Text>
-            <Text style={styles.previewText}>
-              {city}{state ? ', ' + state : ''} {pinCode}
-            </Text>
-            <Text style={styles.previewText}>
-              {country} • {phone}
-            </Text>
-          </View>
-        )}
         {/* First & Last Name */}
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>First Name</Text>
@@ -567,13 +514,13 @@ export default function ShippingAddress({ navigate, goBack }: { navigate?: (name
           )}
         </View>
 
-        {/* City (editable) - prefer showing district when available */}
+        {/* City (editable) */}
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>City</Text>
           <TextInput
-            value={district || city}
-            onChangeText={(v) => { setCity(v); /* keep district cleared when user edits city */ setDistrict(''); }}
-            placeholder="Enter district or city"
+            value={city || district}
+            onChangeText={(v) => { setCity(v); setDistrict(''); }}
+            placeholder="Enter city or district"
             placeholderTextColor="#9CA3AF"
             style={styles.input}
           />
@@ -744,16 +691,6 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     borderColor: '#E5E7EB',
   },
-  previewCard: {
-    backgroundColor: '#FEF3F2',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#FECACA',
-  },
-  previewTitle: { fontSize: 14, fontWeight: '700', color: '#111', marginBottom: 6 },
-  previewText: { fontSize: 14, color: '#6B7280' },
   loadingRow: {
     flexDirection: 'row',
     alignItems: 'center',

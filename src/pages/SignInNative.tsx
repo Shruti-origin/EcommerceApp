@@ -3,6 +3,7 @@ import { SafeAreaView, View, Text, TextInput, TouchableOpacity, StyleSheet, Acti
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff } from 'lucide-react-native';
+import { wp, hp, scale } from '../utils/responsive';
 import { authService } from '../services/api';
 import { guestCartUtils } from '../utils/cartUtils';
 
@@ -133,13 +134,13 @@ const SignInNative = ({ navigate, goBack }: { navigate?: (name: string, params?:
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
-  leafTop: { position: 'absolute', top: -200, left: -170, width: 400, height: 400, opacity: 0.35, transform: [{ rotate: '-120deg' }] },
-  leafBottom: { position: 'absolute', bottom: -200, right: -130, width: 480, height: 480, opacity: 0.35, transform: [{ rotate: '85deg' }] },
+  container: { flex: 1, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', paddingHorizontal: wp(4), paddingTop: hp(2) },
+  leafTop: { position: 'absolute', top: -200, left: -170, width: wp(48), height: wp(48), opacity: 0.35, transform: [{ rotate: '-120deg' }] },
+  leafBottom: { position: 'absolute', bottom: -200, right: -130, width: wp(56), height: wp(56), opacity: 0.35, transform: [{ rotate: '85deg' }] },
   topBar: { position: 'absolute', top: 18, right: 18 },
   skipText: { color: '#000000' ,marginTop:15, marginRight:10},
-  formWrap: { width: '92%', maxWidth: 520, paddingHorizontal: 18, paddingTop: 30, alignItems: 'stretch' },
-  titleBig: { fontSize: 44, fontWeight: '700', textAlign: 'left', marginBottom: 20, color: '#111827' },
+  formWrap: { width: '92%', maxWidth: 520, paddingHorizontal: wp(4), paddingTop: hp(3), alignItems: 'stretch' },
+  titleBig: { fontSize: scale(40), fontWeight: '700', textAlign: 'left', marginBottom: hp(2), color: '#111827' },
   pillInput: { backgroundColor: '#F3F4F6', borderRadius: 28, paddingVertical: 12, paddingHorizontal: 16, marginBottom: 12, color: '#000' },
   passwordRow: { position: 'relative' },
   passwordInput: { paddingRight: 48 },

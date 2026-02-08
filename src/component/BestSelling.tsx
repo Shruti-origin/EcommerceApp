@@ -11,6 +11,7 @@ import {
   NativeScrollEvent,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { wp, hp, scale } from '../utils/responsive';
 
 interface Product {
   vendor: string;
@@ -21,8 +22,12 @@ interface Product {
 
 const BestSelling: React.FC<{ navigate?: (screen: string, params?: any) => void }> = ({ navigate }) => {
   const screenWidth = Dimensions.get('window').width;
+  const screenHeight = Dimensions.get('window').height;
   const scrollRef = useRef<ScrollView | null>(null);
   const [scrollX, setScrollX] = useState(0);
+
+  // Responsive helper: base 375pt design width, clamp scaling
+  const rem = Math.max(0.8, Math.min(screenWidth / 375, 1.25));
 
   const products: Product[] = [
     {
@@ -51,12 +56,24 @@ const BestSelling: React.FC<{ navigate?: (screen: string, params?: any) => void 
     },
   ];
 
-  const CARD_WIDTH = 180; // large card to match design
-  const GAP = 12;
+  // responsive sizes - use a width that scales down on smaller screens
+  // CARD_WIDTH is clamped between 120 and 170 and otherwise ~45% of the screen
+  const CARD_WIDTH = Math.round(Math.max(120, Math.min(170, Math.round(screenWidth * 0.45))));
+  const GAP = Math.round(12 * rem);
   const ITEM_TOTAL = CARD_WIDTH + GAP;
   const scrollDistance = ITEM_TOTAL; // scroll 1 card at a time
-  const CONTAINER_WIDTH = CARD_WIDTH * 2 + GAP;
+  const CONTAINER_WIDTH = Math.min(screenWidth - 32, CARD_WIDTH * 2 + GAP);
   const MAX_SCROLL = Math.max(0, products.length * ITEM_TOTAL - CONTAINER_WIDTH);
+
+  // element sizes (proportional to CARD_WIDTH for consistent visual scale)
+  const imageWrapHeight = Math.round(CARD_WIDTH * 0.65);
+  const productImageHeight = Math.round(CARD_WIDTH * 1.1);
+  const titleFontSize = Math.round(28 * rem);
+  const titleCardFontSize = Math.round(Math.max(12, CARD_WIDTH * 0.078));
+  const starSize = Math.max(8, Math.round(8 * rem));
+  const plusSize = Math.round(Math.max(26, CARD_WIDTH * 0.16));
+  const arrowSize = Math.round(48 * rem);
+
   const { t } = useTranslation();
 
   const scrollBy = (distance: number) => {
@@ -92,15 +109,14 @@ const BestSelling: React.FC<{ navigate?: (screen: string, params?: any) => void 
       </View>
 
       <View style={styles.inner}>
-        <Text style={styles.title}>{t('home.bestSelling')}</Text>
-
+        <Text style={[styles.title, { fontSize: titleFontSize }]}>{t('home.bestSelling')}</Text>
         <View style={styles.sliderWrapper}>
           <TouchableOpacity
             onPress={() => scrollBy(-scrollDistance)}
-            style={[styles.arrowButton, styles.leftArrow]}
+            style={[styles.arrowButton, styles.leftArrow, { width: arrowSize, height: arrowSize, borderRadius: Math.round(arrowSize/2) }]}
             accessibilityLabel="Scroll left"
           >
-            <Text style={styles.arrowText}>{'<'}</Text>
+            <Text style={[styles.arrowText, { fontSize: Math.round(20 * rem) }]}>{'<'}</Text>
           </TouchableOpacity>
 
           <View style={[styles.cardContainer, { width: CONTAINER_WIDTH }]}> 
@@ -118,15 +134,15 @@ const BestSelling: React.FC<{ navigate?: (screen: string, params?: any) => void 
             {products.map((item, index) => (
               <TouchableOpacity
               key={index}
-              style={[styles.card, { width: CARD_WIDTH, marginRight: GAP }]}
+              style={[styles.card, { width: CARD_WIDTH, marginRight: GAP, borderRadius: Math.round(20 * rem) }]}
               activeOpacity={0.9}
               onPress={() => {
                 console.log('[BestSelling] card press', item);
                 navigate?.('ProductDetails', { product: item });
               }}
             >
-                <View style={styles.imageWrap}>
-                  <Image source={item.image} style={styles.productImage} />
+                <View style={[styles.imageWrap, { height: imageWrapHeight }]}>
+                  <Image source={item.image} style={[styles.productImage, { height: productImageHeight, transform: [{ translateY: Math.round(30 * rem) }] }]} />
                 </View>
 
                 <View style={styles.cardBody}>
@@ -134,20 +150,20 @@ const BestSelling: React.FC<{ navigate?: (screen: string, params?: any) => void 
                     <Text style={styles.vendor}>{item.vendor}</Text>
                     <View style={styles.starsRow}>
                       {Array.from({length: 5}).map((_, i) => (
-                        <Text key={i} style={styles.star}>★</Text>
+                        <Text key={i} style={[styles.star, { fontSize: starSize } ]}>★</Text>
                       ))}
                     </View>
                   </View>
 
-                  <Text style={styles.titleCard}>{item.title}</Text>
+                  <Text style={[styles.titleCard, { fontSize: titleCardFontSize }]}>{item.title}</Text>
 
                   <View style={styles.cardFooter}>
                     <Text style={styles.price}>
                       <Text style={styles.currency}>Rs</Text>
                       <Text style={styles.amount}> {item.price}</Text>
                     </Text>
-                    <View style={styles.plusBtn}>
-                      <Text style={styles.plusText}>+</Text>
+                    <View style={[styles.plusBtn, { width: plusSize, height: plusSize, borderRadius: Math.round(plusSize/2), right: Math.round(12 * rem), bottom: Math.round(-10 * rem), top: undefined }]}>
+                      <Text style={[styles.plusText, { fontSize: Math.round(16 * rem) }]}>+</Text>
                     </View>
                   </View>
                 </View>
@@ -157,10 +173,10 @@ const BestSelling: React.FC<{ navigate?: (screen: string, params?: any) => void 
           </View>
           <TouchableOpacity
             onPress={() => scrollBy(scrollDistance)}
-            style={[styles.arrowButton, styles.rightArrow]}
+            style={[styles.arrowButton, styles.rightArrow, { width: arrowSize, height: arrowSize, borderRadius: Math.round(arrowSize/2) }]}
             accessibilityLabel="Scroll right"
           >
-            <Text style={styles.arrowText}>{'>'}</Text>
+            <Text style={[styles.arrowText, { fontSize: Math.round(20 * rem) }]}>{'>'}</Text>
           </TouchableOpacity>
         </View>
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ChevronRight, ChevronLeft } from 'lucide-react-native';
+import { wp, hp, scale } from '../utils/responsive';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import DeleteAccounting from '../component/DeleteAccounting';
@@ -131,26 +132,26 @@ export default function Account({ navigate, goBack }: { navigate?: (name: string
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' ,paddingTop:-10 },
-  content: { paddingHorizontal: 20, paddingTop: 1, paddingBottom: 24 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  backBtn: { marginRight: 8, padding: 6 },
-  title: { fontSize: 18, color: '#111', marginBottom: 8 },
-  sectionTitle: { color: '#483028', fontWeight: '700', fontSize: 16, marginTop: 16, marginBottom: 8 },
+  content: { paddingHorizontal: wp(4), paddingTop: hp(0.5), paddingBottom: hp(3) },
+  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: hp(1) },
+  backBtn: { marginRight: wp(2), padding: wp(1.2) },
+  title: { fontSize: scale(18), color: '#111', marginBottom: hp(1) },
+  sectionTitle: { color: '#483028', fontWeight: '700', fontSize: scale(16), marginTop: hp(2), marginBottom: hp(1) },
   card: { backgroundColor: '#fff', borderRadius: 4, overflow: 'hidden' },
 
   /* wrapper to allow absolute positioned leaf image while hiding overflow */
   containerOuter: { flex: 1, backgroundColor: '#fff', overflow: 'hidden' },
   scroll: { flex: 1 },
-  leafWrapper: { position: 'absolute', right: 0, bottom: -40, width: 220, height: 220, overflow: 'visible' },
-  leaf: { position: 'absolute', width: 240, height: 220, right: -80, bottom: -50, resizeMode: 'cover', transform: [{ rotate: '50deg' }, { scale: 1.4 }] },
-  row: { paddingVertical: 16, paddingHorizontal: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  rowLabel: { fontSize: 15, color: '#111' },
+  leafWrapper: { position: 'absolute', right: 0, bottom: -hp(6), width: wp(55), height: wp(55), overflow: 'visible' },
+  leaf: { position: 'absolute', width: wp(60), height: wp(56), right: -wp(12), bottom: -wp(10), resizeMode: 'cover', transform: [{ rotate: '50deg' }, { scale: 1.4 }] },
+  row: { paddingVertical: hp(1.8), paddingHorizontal: wp(1.6), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  rowLabel: { fontSize: scale(15), color: '#111' },
   rowRight: { flexDirection: 'row', alignItems: 'center' },
-  rightText: { color: '#6b7280', marginRight: 8 },
+  rightText: { color: '#6b7280', marginRight: wp(2) },
   divider: { height: 1, backgroundColor: '#F3F4F6' },
-  deleteBtn: { marginTop: 18, alignSelf: 'flex-start' },
+  deleteBtn: { marginTop: hp(2.2), alignSelf: 'flex-start' },
   deleteText: { color: '#F87171' },
-  footer: { marginTop: 26 },
-  brand: { fontSize: 18, fontWeight: '700', color: '#483028' },
+  footer: { marginTop: hp(3) },
+  brand: { fontSize: scale(18), fontWeight: '700', color: '#483028' },
   version: { color: '#9CA3AF', marginTop: 6 },
 });

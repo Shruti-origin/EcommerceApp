@@ -1,5 +1,6 @@
 import React from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
+import { wp, hp } from '../utils/responsive';
 import SaleBannerNative from '../component/SaleBannerNative';
 import ProductGridNative from '../component/ProductGridNative';
 import {CategorySections}  from '../component/CategoryProductsGrid';
@@ -22,7 +23,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   content: {
-    paddingBottom: 24,
+    paddingBottom: hp(3),
   },
 });
 

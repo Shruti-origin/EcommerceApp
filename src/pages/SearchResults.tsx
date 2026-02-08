@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, SafeAreaView, StatusBar, TextInput } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft } from 'lucide-react-native';
+import { wp, hp, scale } from '../utils/responsive';
 import { productService } from '../services/api';
 
 const placeholder = require('../../assets/s-h1.png');
@@ -95,12 +96,12 @@ const SearchResults = ({ query, navigate, goBack }: { query?: string; navigate?:
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#fff' },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
-  backBtn: { padding: 4, marginRight: 8 },
-  searchInput: { flex: 1, height: 40, backgroundColor: '#F4F4F4', borderRadius: 8, paddingHorizontal: 12 },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: wp(4), paddingVertical: hp(1), borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  backBtn: { padding: wp(1), marginRight: wp(2) },
+  searchInput: { flex: 1, height: scale(40), backgroundColor: '#F4F4F4', borderRadius: 8, paddingHorizontal: wp(3) },
   container: { flex: 1 },
-  loading: { padding: 40, alignItems: 'center' },
-  center: { padding: 40, alignItems: 'center' },
+  loading: { padding: hp(4), alignItems: 'center' },
+  center: { padding: hp(4), alignItems: 'center' },
   row: { flexDirection: 'row', gap: 12, marginBottom: 12, backgroundColor: '#fff', padding: 8, borderRadius: 8, alignItems: 'center' },
   thumb: { width: 84, height: 84, borderRadius: 8, backgroundColor: '#eee', marginRight: 8 },
   title: { fontWeight: '700', marginBottom: 6 },
